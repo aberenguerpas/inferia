@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# miscelanea
+trec_eval-master/
+volumes/
+env/
+experiments/data/wikitables/
+experiments/data/wikitables_clean/
+result/
