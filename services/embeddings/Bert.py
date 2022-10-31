@@ -7,12 +7,12 @@ class Bert:
         self.model = BertModel.from_pretrained("bert-base-uncased")
         self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.dimensions = 768
 
     def getEmbedding(self, data):
         tab = self.tokenizer(
                 data,
                 padding=True,
-                truncation=True,
                 return_tensors="pt"
         ).to(self.device)
 

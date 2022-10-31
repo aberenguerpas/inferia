@@ -7,11 +7,12 @@ class Roberta:
         self.model = RobertaModel.from_pretrained("roberta-base")
         self.tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.dimensions = 768
 
     def getEmbedding(self, data):
         tab = self.tokenizer(
                 data,
-                truncation=True,
+                padding=True,
                 return_tensors="pt"
         ).to(self.device)
 
