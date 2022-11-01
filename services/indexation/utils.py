@@ -2,13 +2,6 @@ import pandas as pd
 import requests
 import numpy as np
 
-def getIDFromWiki(tabName):
-
-    tabName = tabName.split('-')
-    tabName = int(tabName[1] + tabName[2])
-
-    return tabName
-
 def getTableFromWiki(tab):
 
     df = pd.DataFrame(columns=tab['title'])
@@ -21,7 +14,7 @@ def getTableFromWiki(tab):
 
 def getEmbeddings(table):
 
-    response = requests.post('http://localhost:5000/getEmbeddings', json = table)
+    response = requests.post('http://localhost:5000/getEmbeddings', json = {'data':table})
 
     if response.status_code == 200:
         return response.json()

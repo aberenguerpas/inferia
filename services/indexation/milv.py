@@ -11,9 +11,8 @@ class milv:
 
         try:
             connections.connect(
-                alias='default', 
-                host= host, 
-                port='19530'
+            
+                uri='tcp://'+self.host+':19530'
             )
             print('Ok')
         except Exception as e:
@@ -27,10 +26,17 @@ class milv:
 
             print('Creating a collection...')
 
+            id = FieldSchema(
+                name="id", 
+                dtype=DataType.INT64,
+                is_primary=True,
+                auto_id = True
+            )
+
             table_id = FieldSchema(
                 name="table_id", 
-                dtype=DataType.INT64, 
-                is_primary=True, 
+                dtype=DataType.VARCHAR,
+                max_length=100,
             )
 
             content = FieldSchema(
@@ -46,8 +52,8 @@ class milv:
             )
 
             schema = CollectionSchema(
-                fields=[table_id, data_desc, content], 
-                description="Collection of full embeddings " + collection_name
+                fields=[id, table_id, data_desc, content], 
+                description="Collection of embeddings " + collection_name
             )
 
             collection = Collection(
@@ -110,7 +116,7 @@ class milv:
 
         collection = Collection(collection_name)      # Get an existing collection.
         collection.create_index(
-            field_name="table_full", 
+            field_name="data", 
             index_params=index_params,
             index_name="index"
         )
