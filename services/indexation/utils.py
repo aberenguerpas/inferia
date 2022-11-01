@@ -17,7 +17,7 @@ def getEmbeddings(table):
     response = requests.post('http://localhost:5000/getEmbeddings', json = {'data':table})
 
     if response.status_code == 200:
-        return response.json()
+        return response.json()['emb']
     elif response.status_code == 404:
         print('Error getting embedding', response.status_cod )
 
