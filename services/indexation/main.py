@@ -172,7 +172,7 @@ def main():
     # Index data
     number_files = len(os.listdir(args.input))
     start = 1
-    for path in tqdm(os.listdir(args.input)):
+    for i, path in enumerate(tqdm(os.listdir(args.input))):
         file = open(os.path.join(args.input, path))
 
         try:
