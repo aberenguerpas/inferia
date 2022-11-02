@@ -142,6 +142,11 @@ def main():
     #Popen(['env/bin/python','services/embeddings/main.py', '-m', args.model], stdin=PIPE, stdout=PIPE)
     #time.sleep(10)
 
+    if model_name == 'stb':
+        dimensions = 384
+    else:
+        dimensions = 768
+
     # Store the similarity of each table with the subsets 1%, 5%, 10%, 20%, ..., 90%
     if args.type == 'split':
         data_similarity = pd.DataFrame(columns=['Name', '1%', '5%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', '100%'])
@@ -160,11 +165,6 @@ def main():
 
     tables_discarded = 0
     #list_files = glob.glob(os.path.join(args.input, '*.csv'))
-
-    if model_name == 'stb':
-        dimensions = 384
-    else:
-        dimensions = 768
 
     milvus.createCollection(model_name+"_headers", dim = dimensions)
     milvus.loadCollection()
