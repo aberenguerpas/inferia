@@ -130,7 +130,7 @@ def main():
     parser.add_argument('-m', '--model', default='stb', choices=['stb', 'rbt','brt'],
                         help='"stb" (Sentence-BERT), "rbt" (ROBERTA) or "brt" (BERT)')
     parser.add_argument('-p', '--percent', default='100', help='Content percentage index')
-    parser.add_argument('-r', '--result', default='./search_result/results.csv', help='Name of the output folder that stores the search results')
+    parser.add_argument('-r', '--result', default='search_result/results.csv', help='Name of the output folder that stores the search results')
     
     args = parser.parse_args()
 
@@ -138,6 +138,12 @@ def main():
     try:
         if os.path.exists(args.result):
             os.remove(args.result)
+        
+        dir = "./"+"/".join(args.result.split("/")[:-1])
+
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+
     except Exception as e:
         print(e)
 
