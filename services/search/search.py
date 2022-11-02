@@ -111,7 +111,7 @@ def create_embeddings(table):
         list_tokens = text.split()
         if len(list_tokens) > max_sequence_length:
             list_vectors = []
-            for i in range(0, column.size, max_sequence_length):
+            for i in range(0, len(list_tokens), max_sequence_length):
                 list_vectors.append(getEmbeddings(' '.join(list_tokens[i:i+max_sequence_length])))
                 embeddings['columns'][column]= np.mean(list_vectors, axis=0).tolist()
         else:

@@ -1,20 +1,27 @@
 # InferIA experiment
 
+Prerequisites, install dependencies
+
+-Create virtual env: 
+```python -v venv env```
+
+-Activate env: ```source env/bin/activate```
+
+-Install requirements:
+```pip install -r requirements.txt```
 
 Steps:
+1. Download and extract wikitables in ```experiments/data/wikitables``` using ```wget http://iai.group/downloads/smart_table/WP_tables.zip```
 
-1. `services/extraction/extractor.py`: extract all Wikitables in JSON format and generates an output folder with CSV version.
+2. Execute `python services/extraction/extractor.py -i experiments/data/wikitables -o experiments/data/wikitables_clean`: extract all Wikitables in JSON format and generates an output folder with CSV version.
 
-2. `services/embeddings/main.py`: Run the microservice to 
+3. `python services/embeddings/main.py -m stb`: Run the embeddgins microservice
 
-3. `analysis.py`: get statistics of the similarity between CSV tables based on the results of the previous script
- 
-4. `coverage.py`: calculate statistics about the coverage of each model for the whole dataset, taking into account all the content, only string data and only numerical data.
+4. `python services/indexation/main.py -m stb`: Starts to index all tables in milvus database
 
+5. `python services/search/search.py`: Perform the queries and store the result
 
-
-
-Execute trec_eval
+6. Execute trec_eval from inferia directory:
 ```
 trec_eval-9.0.7/trec_eval experiments/data/benchmarks/table/qrels.txt search_result/results.csv
 ```
