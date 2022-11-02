@@ -26,18 +26,17 @@ def save_result(id, rank, path_result):
 
 def getScore(id, results_h, results_c, table_size):
 
-    result_c = list(filter(lambda d: d.id==id, results_c))[:table_size]
-    result_c =np.array([s.distance for s in result_c])
+    result_c = list(filter(lambda d: d[0]==id, results_c))[:table_size]
+    result_c =np.array([s[1] for s in result_c])
     score_c = np.sum(result_c)/table_size
 
-    score_h = list(filter(lambda d: d.id==id, results_h))
+    score_h = list(filter(lambda d: d[0]==id, results_h))
     if len(score_h)>0:
-        score_h = score_h[0].distance
+        score_h = score_h[0][1]
     else:
         score_h = 0
 
     score = score_c*0.5 + score_h*0.5
-
     return score
 
 
@@ -54,10 +53,11 @@ def search(embs, collection_h, collection_c):
         limit=10, 
         expr=None,
         round_decimal=3,
+        output_fields = ["table_id"],
         consistency_level="Strong"
     )
-
-    ids_list+=results_h[0].ids
+    results_h = [(r.entity.get('table_id'),r.distance) for r in results_h[0]]
+    ids_list += [k for k,v in results_h]
 
     # Content search
     results_c = []
@@ -70,20 +70,21 @@ def search(embs, collection_h, collection_c):
             limit=10, 
             expr=None,
             round_decimal = 3,
-            output_fields = ["data_desc"],
+            output_fields = ["data_desc","table_id"],
             consistency_level = "Strong"
         )
-        results_c+=results[0]
-        ids_list+=results[0].ids
 
- 
+        results_c+=[(r.entity.get('table_id'),r.distance) for r in results[0]]
+        ids_list+=[r.entity.get('table_id') for r in results[0]]
+
     ids_list = list(set(ids_list)) # List with candidate tables id
+
 
     # Ranking tablas
     ranking = dict()
     table_size = len(embs['columns']) # Columns number
     for id in ids_list:
-        ranking[id]= getScore(id, results_h[0], results_c, table_size)
+        ranking[id]= getScore(id, results_h, results_c, table_size)
 
     # Ordenar ranking
     ranking_sort = sorted(ranking.items(), key=lambda x: x[1], reverse=True)    
@@ -126,15 +127,19 @@ def main():
     parser = argparse.ArgumentParser(description='Search in wikitables')
     parser.add_argument('-i', '--input', default='experiments/data/benchmarks/table/queries.txt', help='Name of the input folder storing CSV tables')
     parser.add_argument('-d', '--data', default='experiments/data/wikitables_clean', help='Data directory')
-    parser.add_argument('-m', '--model', default='stb', choices=['w2v', 'ftw', 'fts', 'stb', 'rbt','brt'],
-                        help='Model to use: "w2v" (Word2Vec), "ftw" (fastText word),"fts" (fastText subword), "stb" (Sentence-BERT), "rbt" (ROBERTA) or "brt" (BERT)')
-    parser.add_argument('-p', '--percent', default='90', help='Content percentage index')
+    parser.add_argument('-m', '--model', default='stb', choices=['stb', 'rbt','brt'],
+                        help='"stb" (Sentence-BERT), "rbt" (ROBERTA) or "brt" (BERT)')
+    parser.add_argument('-p', '--percent', default='100', help='Content percentage index')
     parser.add_argument('-r', '--result', default='./search_result/results.csv', help='Name of the output folder that stores the search results')
     
     args = parser.parse_args()
 
     # remove old result files
-    os.remove(args.result)
+    try:
+        if os.path.exists(args.result):
+            os.remove(args.result)
+    except Exception as e:
+        print(e)
 
     # start microservice embeddings
     #Popen(['env/bin/python','services/embeddings/main.py', '-m', args.model], stdin=PIPE, stdout=PIPE)
@@ -142,20 +147,18 @@ def main():
 
     # connect to milvus server
     connections.connect(
-        alias="default", 
-        host='localhost', 
-        port='19530'
+        uri='tcp://146.59.196.180:19530'
     )
 
     # load the collections
 
     # Headers collection
     collection_h = Collection(args.model+"_headers")
-    #collection_h.load()
+    collection_h.load()
 
     # Content collection
     collection_c = Collection(args.model+"_content_"+args.percent)
-    #collection_c.load()
+    collection_c.load()
 
     # Read input file
     queries = pd.read_csv(args.input, sep="\t", header=None)

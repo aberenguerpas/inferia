@@ -50,9 +50,13 @@ def get_column_vector(column):
 
 def index_table(table, model_name, key):
     for column in table:
-        vector_col = get_column_vector(table[column])
-        col_emb = [[key], ['Col '+ column], [normalize(np.array(vector_col))]]
-        milvus.insertData(col_emb, model_name+"_content_100")
+        try:
+            vector_col = get_column_vector(table[column])
+            col_emb = [[key], ['Col '+ column], [normalize(np.array(vector_col))]]
+            milvus.insertData(col_emb, model_name+"_content_100")
+        except Exception as e:
+            print(col_emb)
+            print(e)
 
 def compare_tables(table, subtable, model_name):
     """
@@ -142,6 +146,18 @@ def main():
     if args.type == 'split':
         data_similarity = pd.DataFrame(columns=['Name', '1%', '5%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', '100%'])
         data_similarity.set_index('Name', inplace=True)  # The name of the table is the index of the DataFrame
+        milvus.createCollection(model_name+"_content_1", dim = dimensions)
+        milvus.createCollection(model_name+"_content_5", dim = dimensions)
+        for i in range(10,110,10):
+            milvus.createCollection(model_name+"_content_"+str(i), dim = dimensions)
+    else:
+        # Create collections
+        milvus.createCollection(model_name+"_headers", dim = dimensions)
+        milvus.createCollection(model_name+"_content_100", dim = dimensions)
+        # Load collections
+        milvus.loadCollection(model_name+"_headers")
+        milvus.loadCollection(model_name+"_content_100")
+
     tables_discarded = 0
     #list_files = glob.glob(os.path.join(args.input, '*.csv'))
 
@@ -151,10 +167,6 @@ def main():
         dimensions = 768
 
     milvus.createCollection(model_name+"_headers", dim = dimensions)
-    milvus.createCollection(model_name+"_content_1", dim = dimensions)
-    milvus.createCollection(model_name+"_content_5", dim = dimensions)
-    for i in range(10,110,10):
-        milvus.createCollection(model_name+"_content_"+str(i), dim = dimensions)
     milvus.loadCollection()
 
     # Index data
@@ -173,7 +185,7 @@ def main():
                     # index table head embedding 
                     headers = table.columns.values
                     headers = filter(lambda col: 'Unnamed' not in col, headers) # Skip unnamed column
-                    headers_text = ' '.join(map(str,headers))
+                    headers_text = ' '.join(map(str, headers))
         
                     head_emb = [[key],['headers'], [normalize(np.array(getEmbeddings(headers_text)))]]
                     milvus.insertData(head_emb, model_name+"_headers")
@@ -193,14 +205,19 @@ def main():
                 start = end+1
 
                 # Build indexs
-                milvus.buildIndex(model_name+"_headers")
-                milvus.buildIndex(model_name+"_content_1")
-                milvus.buildIndex(model_name+"_content_5")
-                for i in range(10,110,10):
-                    milvus.buildIndex(model_name+"_content_"+str(i))
+                if args.type == 'split':
+                    milvus.buildIndex(model_name+"_headers")
+                    milvus.buildIndex(model_name+"_content_1")
+                    milvus.buildIndex(model_name+"_content_5")
+                    for i in range(10,110,10):
+                        milvus.buildIndex(model_name+"_content_"+str(i))
+                else:
+                    milvus.buildIndex(model_name+"_headers")
+                    milvus.buildIndex(model_name+"_content_100")
 
         except Exception as e:
             print(e)
+            print(path)
             traceback.print_exc()
 
     print('Total tables discarded: ' + str(tables_discarded))

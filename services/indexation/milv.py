@@ -36,7 +36,7 @@ class milv:
             table_id = FieldSchema(
                 name="table_id", 
                 dtype=DataType.VARCHAR,
-                max_length=100,
+                max_length=500,
             )
 
             content = FieldSchema(
@@ -48,7 +48,7 @@ class milv:
             data_desc = FieldSchema(
                 name="data_desc", 
                 dtype=DataType.VARCHAR, 
-                max_length=500,
+                max_length=1000,
             )
 
             schema = CollectionSchema(
