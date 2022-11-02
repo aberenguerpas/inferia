@@ -135,3 +135,4 @@ env/
 experiments/data/wikitables/
 experiments/data/wikitables_clean/
 result/
+search_result/
