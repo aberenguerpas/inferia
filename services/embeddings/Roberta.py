@@ -13,6 +13,7 @@ class Roberta:
         tab = self.tokenizer(
                 data,
                 padding=True,
+                truncation=True,
                 return_tensors="pt"
         ).to(self.device)
 

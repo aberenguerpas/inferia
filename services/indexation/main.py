@@ -31,14 +31,18 @@ def get_column_vector(column):
         except TypeError:
             text = ' '.join(column.apply(str).to_list()).lower()
 
-        # The maximum token length admitted by SentenceBERT is 256
+        # The maximum token length admitted by is 256
         max_sequence_length = 256
         # Larger texts are cut into 256 token length pieces and their vectors are averaged
         # Take into account that a cell could have more than one token
+
         if len(text.split()) > max_sequence_length:
+
             list_tokens = text.split()
+           
             list_vectors = []
             for i in range(0, column.size, max_sequence_length):
+                
                 list_vectors.append(getEmbeddings(' '.join(list_tokens[i:i+max_sequence_length])))
             
             return np.mean(list_vectors, axis=0).tolist()
@@ -52,13 +56,13 @@ def index_table(table, model_name, key):
     for column in table:
         try:
             vector_col = get_column_vector(table[column])
-            col_emb = [[key], ['Col '+ column], [normalize(np.array(vector_col))]]
+            col_emb = [[key], ['Col '+ column[:50]], [normalize(np.array(vector_col))]]
             milvus.insertData(col_emb, model_name+"_content_100")
         except Exception as e:
-            print(col_emb)
             print(e)
+            traceback.print_exc()
 
-def compare_tables(table, subtable, model_name):
+def compare_tables(table, subtable):
     """
     Compute the similarity between two vectors as the average similarity of their columns.
     :param table: original table
@@ -116,7 +120,7 @@ def main():
     start_time = time.time()
     parser = argparse.ArgumentParser(description='Process WikiTables corpus')
     parser.add_argument('-i', '--input', default='experiments/data/wikitables_clean', help='Name of the input folder storing CSV tables')
-    parser.add_argument('-m', '--model', default='stb', choices=['stb', 'rbt', 'brt'],
+    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'rbt', 'brt'],
                         help='Model to use: "stb" (Sentence-BERT, Default), "rbt" (Roberta),'
                              ' "brt" (Bert)')
     parser.add_argument('-r', '--result', default='./result',
@@ -186,7 +190,7 @@ def main():
                     headers = table.columns.values
                     headers = filter(lambda col: 'Unnamed' not in col, headers) # Skip unnamed column
                     headers_text = ' '.join(map(str, headers))
-        
+
                     head_emb = [[key],['headers'], [normalize(np.array(getEmbeddings(headers_text)))]]
                     milvus.insertData(head_emb, model_name+"_headers")
                     index_table(table, args.model, key)

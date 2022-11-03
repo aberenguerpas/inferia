@@ -22,7 +22,11 @@ def getEmbeddings(table):
         print('Error getting embedding', response.status_cod )
 
 def normalize(v):
-        norm = np.linalg.norm(v)
-        if norm == 0: 
-            return v
-        return v / norm
+        try:
+            norm = np.linalg.norm(v)
+            if norm == 0: 
+                return v
+            return v / norm
+        except Exception as e:
+            print(e)
+            print('v', v)
