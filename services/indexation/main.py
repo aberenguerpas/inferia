@@ -260,5 +260,5 @@ def main():
     milvus.closeConnection()
 
 if __name__ == "__main__":
-    milvus = milv('localhost')
+    milvus = milv('146.59.196.180')
     main()
