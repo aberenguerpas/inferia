@@ -11,7 +11,7 @@ import pandas as pd
 import traceback
 
 
-def get_column_vector(column):
+def get_column_text(column):
     """
     Get the word embedding vector that represents all the text contained in a column.
     :param column: content of the column
@@ -40,27 +40,55 @@ def get_column_vector(column):
 
             list_tokens = text.split()
            
-            list_vectors = []
+            list_texts = []
             for i in range(0, column.size, max_sequence_length):
                 
-                list_vectors.append(getEmbeddings(' '.join(list_tokens[i:i+max_sequence_length])))
+                list_texts.append(' '.join(list_tokens[i:i+max_sequence_length]))
             
-            return np.mean(list_vectors, axis=0).tolist()
+            return list_texts
         else:
-            return getEmbeddings(text)
+            return [text]
     else:
         return []
 
 
 def index_table(table, model_name, key):
-    for column in table:
-        try:
-            vector_col = get_column_vector(table[column])
-            col_emb = [[key], ['Col '+ column[:50]], [normalize(np.array(vector_col))]]
-            milvus.insertData(col_emb, model_name+"_content_100")
-        except Exception as e:
-            print(e)
-            traceback.print_exc()
+    cols_d = dict()
+    for i, column in enumerate(table):
+        cols_d[i] = get_column_text(table[column])
+
+    try:
+        data = sum(cols_d.values(), []) # flatten data
+
+        cols_emb = getEmbeddings(data)
+
+        id = 0
+        to_insert = []
+        to_insert.append([])
+        to_insert.append([])
+        to_insert.append([])
+        for i, column in enumerate(table):
+            n_embeddings = len(cols_d[i])
+
+            if n_embeddings > 1:
+                vector = np.mean(cols_emb[id:id+n_embeddings], axis=0).tolist()
+            else:
+                vector = cols_emb[id:id+n_embeddings]
+
+            vector = np.array(normalize(vector))
+            if len(vector)==1:
+                vector = vector[0]
+            id += n_embeddings
+            to_insert[0].append(key)
+            to_insert[1].append('Col '+ column[:10])
+            to_insert[2].append(vector)
+            #col_emb = [[key], ['Col '+ column[:10]], [vector]]
+        milvus.insertData(to_insert, model_name+"_content_100")
+    except Exception as e:
+       print(n_embeddings)
+       #print(col_emb)
+       print(e)
+       traceback.print_exc()
 
 def compare_tables(table, subtable):
     """
@@ -120,8 +148,8 @@ def main():
     start_time = time.time()
     parser = argparse.ArgumentParser(description='Process WikiTables corpus')
     parser.add_argument('-i', '--input', default='experiments/data/wikitables_clean', help='Name of the input folder storing CSV tables')
-    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'rbt', 'brt'],
-                        help='Model to use: "stb" (Sentence-BERT, Default), "rbt" (Roberta),'
+    parser.add_argument('-m', '--model', default='stb', choices=['stb', 'rbt', 'brt'],
+                        help='Model to use: "rbt" (Sentence-BERT, Default), "rbt" (Roberta),'
                              ' "brt" (Bert)')
     parser.add_argument('-r', '--result', default='./result',
                         help='Name of the output folder that stores the similarity values calculated')
@@ -232,5 +260,5 @@ def main():
     milvus.closeConnection()
 
 if __name__ == "__main__":
-    milvus = milv('146.59.196.180')
+    milvus = milv('localhost')
     main()

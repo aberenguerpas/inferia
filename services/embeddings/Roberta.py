@@ -4,7 +4,7 @@ import torch
 class Roberta:
 
     def __init__(self):
-        self.model = RobertaModel.from_pretrained("roberta-base")
+        self.model = RobertaModel.from_pretrained("roberta-base", output_hidden_states = True)
         self.tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         self.dimensions = 768
@@ -18,5 +18,5 @@ class Roberta:
         ).to(self.device)
 
         self.model = self.model.to(self.device)
-        emb = self.model(**tab).last_hidden_state[0][0]
-        return emb
+        output = self.model(**tab)
+        return [i[0] for i in output.last_hidden_state]

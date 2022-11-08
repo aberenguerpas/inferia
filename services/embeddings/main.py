@@ -24,7 +24,8 @@ def checkGPU():
 async def getEmbeddings(request: Request):
     response = await request.json()
     data = model.getEmbedding(response['data'])
-    return JSONResponse(content={'emb':data.tolist()})
+    data = [l.tolist() for l in data]
+    return JSONResponse(content={'emb':data})
 
 
 if __name__ == "__main__":
