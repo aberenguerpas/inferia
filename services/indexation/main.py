@@ -233,6 +233,11 @@ def main():
                     faiss.normalize_L2(embeddings)
                     id = np.random.randint(0, 99999999999999, size=1)
                     invertedIndex[id[0]] = key
+
+                    if model_name != 'stb':
+                        embeddings =  np.array([item for sublist in embeddings for item in sublist], dtype="float32" ) # flat lists
+
+                    
                     index_headers.add_with_ids(embeddings, id)
                     index_table(table, key, index_content, invertedIndex)
                 else:
