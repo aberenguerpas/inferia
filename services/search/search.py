@@ -1,12 +1,11 @@
-from pymilvus import connections, Collection
 import argparse
 import time
 import os
 from tqdm import tqdm
 import pandas as pd
-from subprocess import Popen, PIPE
 from utils import *
 import numpy as np
+import faiss
 
 def save_result(id, rank, path_result):
     df = pd.DataFrame.from_records(rank, columns=['document_id', 'score'])
@@ -40,42 +39,34 @@ def getScore(id, results_h, results_c, table_size):
     return score
 
 
-def search(embs, collection_h, collection_c):
+def search(embs, index_h, index_c, inverted):
 
-    search_params = {"metric_type": "IP", "params": {"nprobe": 10}}
+    k = 10 # n results
+
     ids_list = []
 
     # Header search
-    results_h = collection_h.search(
-        data=[embs['header']], 
-        anns_field="data", 
-        param=search_params, 
-        limit=10, 
-        expr=None,
-        round_decimal=3,
-        output_fields = ["table_id"],
-        consistency_level="Strong"
-    )
-    results_h = [(r.entity.get('table_id'),r.distance) for r in results_h[0]]
+     # embedding normalization
+    h_emb = np.array([embs['header']], dtype="float32")
+    faiss.normalize_L2(h_emb)
+
+    distances_h, indices_h = index_h.search(h_emb, k)
+
+    results_h = [(inverted[r],distances_h[0][i]) for i, r in enumerate(indices_h[0])]
     ids_list += [k for k,v in results_h]
+
+    print(results_h)
 
     # Content search
     results_c = []
     for col in embs['columns']:
-       
-        results = collection_c.search(
-            data=[embs['columns'][col]], 
-            anns_field="data", 
-            param=search_params, 
-            limit=10, 
-            expr=None,
-            round_decimal = 3,
-            output_fields = ["data_desc","table_id"],
-            consistency_level = "Strong"
-        )
+        c_emb = np.array([embs['columns'][col]], dtype="float32")
+        faiss.normalize_L2(c_emb)
 
-        results_c+=[(r.entity.get('table_id'),r.distance) for r in results[0]]
-        ids_list+=[r.entity.get('table_id') for r in results[0]]
+        distances_c, indices_c = index_c.search(c_emb, k)
+
+        results_c+=[(inverted[r],distances_c[0][i])  for i, r in enumerate(indices_c[0])]
+        ids_list+=[k for k,v in results_h]
 
     ids_list = list(set(ids_list)) # List with candidate tables id
 
@@ -127,6 +118,7 @@ def main():
     parser = argparse.ArgumentParser(description='Search in wikitables')
     parser.add_argument('-i', '--input', default='experiments/data/benchmarks/table/queries.txt', help='Name of the input folder storing CSV tables')
     parser.add_argument('-d', '--data', default='experiments/data/wikitables_clean', help='Data directory')
+    parser.add_argument('-n', '--indexDir', default='services/indexation/indexData', help='Inv')
     parser.add_argument('-m', '--model', default='stb', choices=['stb', 'rbt','brt'],
                         help='"stb" (Sentence-BERT), "rbt" (ROBERTA) or "brt" (BERT)')
     parser.add_argument('-p', '--percent', default='100', help='Content percentage index')
@@ -147,29 +139,23 @@ def main():
     except Exception as e:
         print(e)
 
-    # start microservice embeddings
-    #Popen(['env/bin/python','services/embeddings/main.py', '-m', args.model], stdin=PIPE, stdout=PIPE)
-    #time.sleep(10)
-
-    # connect to milvus server
-    connections.connect(
-        uri='tcp://146.59.196.180:19530'
-    )
-
     # load the collections
 
     # Headers collection
-    collection_h = Collection(args.model+"_headers")
-    collection_h.load()
+    index_headers = loadIndex(os.path.join(args.indexDir, args.model+'_headers.faiss'))
 
     # Content collection
-    collection_c = Collection(args.model+"_content_"+args.percent)
-    collection_c.load()
+    index_content = loadIndex(os.path.join(args.indexDir, args.model+'_content.faiss'))
 
     # Read input file
     queries = pd.read_csv(args.input, sep="\t", header=None)
     files = queries[1].values
+
+    # Read inversed Index
+
+    inverted = loadInversedIndex(os.path.join(args.indexDir, args.model+'_invertedIndex'))
     # Read table
+
 
     for i, path in enumerate(tqdm(files)):
         #load table
@@ -181,7 +167,7 @@ def main():
         embs = create_embeddings(table)
 
         # search
-        rank = search(embs, collection_h, collection_c)
+        rank = search(embs, index_headers, index_content, inverted)
 
         # save result
         save_result(i, rank, args.result)

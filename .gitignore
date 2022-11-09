@@ -136,3 +136,4 @@ experiments/data/wikitables/
 experiments/data/wikitables_clean/
 result/
 search_result/
+services/indexation/indexData/

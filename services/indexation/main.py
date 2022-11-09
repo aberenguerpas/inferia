@@ -1,4 +1,3 @@
-from milv import milv
 import os
 import torch
 from utils import *
@@ -9,7 +8,8 @@ import time
 import argparse
 import pandas as pd
 import traceback
-
+from faissUtils import *
+import faiss
 
 def get_column_text(column):
     """
@@ -52,7 +52,7 @@ def get_column_text(column):
         return []
 
 
-def index_table(table, model_name, key):
+def index_table(table, key, index_content, invertedIndex):
     cols_d = dict()
     for i, column in enumerate(table):
         cols_d[i] = get_column_text(table[column])
@@ -71,20 +71,25 @@ def index_table(table, model_name, key):
             n_embeddings = len(cols_d[i])
 
             if n_embeddings > 1:
-                vector = np.mean(cols_emb[id:id+n_embeddings], axis=0).tolist()
+                vector = [np.mean(cols_emb[id:id+n_embeddings], axis=0)]
             else:
                 vector = cols_emb[id:id+n_embeddings]
 
-            vector = np.array(normalize(vector))
-            if len(vector)==1:
-                vector = vector[0]
+ 
+            vector = np.array(vector, dtype="float32")
+
+            faiss.normalize_L2(vector)
+
             id += n_embeddings
-            to_insert[0].append(key)
-            to_insert[1].append('Col '+ column[:10])
-            to_insert[2].append(vector)
-            #col_emb = [[key], ['Col '+ column[:10]], [vector]]
-        milvus.insertData(to_insert, model_name+"_content_100")
+            
+            idx = np.random.randint(0, 99999999999999, size=1)
+            invertedIndex[idx[0]] = key
+
+            index_content.add_with_ids(vector, idx)
+        #milvus.insertData(to_insert, model_name+"_content_100")
+        
     except Exception as e:
+       print(vector.shape)
        print(n_embeddings)
        #print(col_emb)
        print(e)
@@ -157,6 +162,7 @@ def main():
                         help='Use all ("all"), string ("str") or numeric ("num") columns')
     parser.add_argument('-R', '--resume', action='store_true', help='Resume the generate embedding process in case something failed.')
     parser.add_argument('-rs', '--rstate', default=None, type=int, help='Seed value for random selection of rows')
+    parser.add_argument('-e', '--savemb', default='services/indexation/indexData', help='path to save indexed embeddings')
     parser.add_argument('-t', '--type', default='all', choices=['all', 'split'], help='Experiment type "all" to index full table or "split" to index subtables 1,5,10,20%...90%')
     args = parser.parse_args()
 
@@ -170,36 +176,41 @@ def main():
 
     # model
     model_name = args.model
-    # start microservice embeddings
-    #Popen(['env/bin/python','services/embeddings/main.py', '-m', args.model], stdin=PIPE, stdout=PIPE)
-    #time.sleep(10)
 
     if model_name == 'stb':
         dimensions = 384
     else:
         dimensions = 768
 
+    invertedIndex = dict()
+
     # Store the similarity of each table with the subsets 1%, 5%, 10%, 20%, ..., 90%
     if args.type == 'split':
         data_similarity = pd.DataFrame(columns=['Name', '1%', '5%', '10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%', '100%'])
         data_similarity.set_index('Name', inplace=True)  # The name of the table is the index of the DataFrame
-        milvus.createCollection(model_name+"_content_1", dim = dimensions)
-        milvus.createCollection(model_name+"_content_5", dim = dimensions)
+        #milvus.createCollection(model_name+"_content_1", dim = dimensions)
+        #milvus.createCollection(model_name+"_content_5", dim = dimensions)
+ 
+        createIndex(dimensions)
         for i in range(10,110,10):
-            milvus.createCollection(model_name+"_content_"+str(i), dim = dimensions)
+            #indexs['content_'+str(i)] = createIndex(dimensions)
+            #milvus.createCollection(model_name+"_content_"+str(i), dim = dimensions)
+            pass
     else:
         # Create collections
-        milvus.createCollection(model_name+"_headers", dim = dimensions)
-        milvus.createCollection(model_name+"_content_100", dim = dimensions)
+        index_content = createIndex(dimensions)
+        index_headers = createIndex(dimensions)
+        #milvus.createCollection(model_name+"_headers", dim = dimensions)
+        #milvus.createCollection(model_name+"_content_100", dim = dimensions)
         # Load collections
-        milvus.loadCollection(model_name+"_headers")
-        milvus.loadCollection(model_name+"_content_100")
+        #milvus.loadCollection(model_name+"_headers")
+        #milvus.loadCollection(model_name+"_content_100")
 
     tables_discarded = 0
     #list_files = glob.glob(os.path.join(args.input, '*.csv'))
 
-    milvus.createCollection(model_name+"_headers", dim = dimensions)
-    milvus.loadCollection()
+    #milvus.createCollection(model_name+"_headers", dim = dimensions)
+    #milvus.loadCollection()
 
     # Index data
     number_files = len(os.listdir(args.input))
@@ -218,10 +229,12 @@ def main():
                     headers = table.columns.values
                     headers = filter(lambda col: 'Unnamed' not in col, headers) # Skip unnamed column
                     headers_text = ' '.join(map(str, headers))
-
-                    head_emb = [[key],['headers'], [normalize(np.array(getEmbeddings(headers_text)))]]
-                    milvus.insertData(head_emb, model_name+"_headers")
-                    index_table(table, args.model, key)
+                    embeddings = np.array([getEmbeddings(headers_text)], dtype="float32")
+                    faiss.normalize_L2(embeddings)
+                    id = np.random.randint(0, 99999999999999, size=1)
+                    invertedIndex[id[0]] = key
+                    index_headers.add_with_ids(embeddings, id)
+                    index_table(table, key, index_content, invertedIndex)
                 else:
                     data_similarity.loc[os.path.basename(file).split('.')[0]] = calculate_similarity(table, args.model, args.rstate)
 
@@ -236,16 +249,23 @@ def main():
                     data_similarity = data_similarity[0:0]  # Erase the rows and keep the same DataFrame structure (columns)
                 start = end+1
 
+                # create folder 
+
+                if not os.path.exists(args.savemb):
+                    os.makedirs(args.savemb)
+
                 # Build indexs
                 if args.type == 'split':
-                    milvus.buildIndex(model_name+"_headers")
-                    milvus.buildIndex(model_name+"_content_1")
-                    milvus.buildIndex(model_name+"_content_5")
+                    #milvus.buildIndex(model_name+"_headers")
+                    #milvus.buildIndex(model_name+"_content_1")
+                    #milvus.buildIndex(model_name+"_content_5")
                     for i in range(10,110,10):
-                        milvus.buildIndex(model_name+"_content_"+str(i))
+                        pass
+                        #milvus.buildIndex(model_name+"_content_"+str(i))
                 else:
-                    milvus.buildIndex(model_name+"_headers")
-                    milvus.buildIndex(model_name+"_content_100")
+                    saveIndex(index_headers, os.path.join(args.savemb, model_name+'_headers.faiss'))
+                    saveIndex(index_content, os.path.join(args.savemb, model_name+'_content.faiss'))
+                    saveInvertedIndex(invertedIndex, os.path.join(args.savemb, model_name+'_invertedIndex'))
 
         except Exception as e:
             print(e)
@@ -257,8 +277,6 @@ def main():
     end_time = time.time()
     print('Processing time: ' + str(end_time - start_time) + ' seconds')
 
-    milvus.closeConnection()
 
 if __name__ == "__main__":
-    milvus = milv('146.59.196.180')
     main()

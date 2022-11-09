@@ -20,6 +20,3 @@ t1 = """Quis commodo in Lorem et ipsum minim. Consectetur sunt esse do est exerc
 emb = getEmbeddings(['cosita linda mi amor', 'we'])
 
 print(emb)
-#print(emb[1])
-#print(emb[2])
-
