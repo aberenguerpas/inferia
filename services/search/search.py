@@ -41,7 +41,7 @@ def getScore(id, results_h, results_c, table_size):
 
 def search(embs, index_h, index_c, inverted):
 
-    k = 10 # n results
+    k = 20 # n results
 
     ids_list = []
 
@@ -55,7 +55,7 @@ def search(embs, index_h, index_c, inverted):
     results_h = [(inverted[r],distances_h[0][i]) for i, r in enumerate(indices_h[0])]
     ids_list += [k for k,v in results_h]
 
-    print(results_h)
+    
 
     # Content search
     results_c = []
@@ -66,7 +66,7 @@ def search(embs, index_h, index_c, inverted):
         distances_c, indices_c = index_c.search(c_emb, k)
 
         results_c+=[(inverted[r],distances_c[0][i])  for i, r in enumerate(indices_c[0])]
-        ids_list+=[k for k,v in results_h]
+        ids_list+=[k for k,v in results_c]
 
     ids_list = list(set(ids_list)) # List with candidate tables id
 
