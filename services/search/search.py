@@ -24,48 +24,62 @@ def save_result(id, rank, path_result):
     df.to_csv(path_result, mode='a', index=False, header=False, sep="\t")
 
 def getScore(id, results_h, results_c, table_size):
-
+    
     result_c = list(filter(lambda d: d[0]==id, results_c))[:table_size]
-    result_c =np.array([s[1] for s in result_c])
-    score_c = np.sum(result_c)/table_size
+        
+    result_c = np.array([s[1] for s in result_c])
 
+    score_c = np.sum(result_c)/table_size
+  
     score_h = list(filter(lambda d: d[0]==id, results_h))
+
+
     if len(score_h)>0:
         score_h = score_h[0][1]
     else:
         score_h = 0
 
     score = score_c*0.5 + score_h*0.5
+
     return score
 
 
-def search(embs, index_h, index_c, inverted):
+def search(embs, index_h, index_c, inverted, file):
 
-    k = 20 # n results
+    k = 2000 # n results
 
     ids_list = []
 
     # Header search
-     # embedding normalization
+    # embedding normalization
     h_emb = np.array([embs['header']], dtype="float32")
+
+    while len(h_emb) == 1:
+        h_emb = h_emb[0]
+    
+    h_emb = np.array([h_emb]).astype(np.float32)
     faiss.normalize_L2(h_emb)
 
-    distances_h, indices_h = index_h.search(h_emb, k)
+    distances_h, indices_h = index_h.search(h_emb, 100)
 
-    results_h = [(inverted[r],distances_h[0][i]) for i, r in enumerate(indices_h[0])]
+    results_h = [(inverted[r], distances_h[0][i]) for i, r in enumerate(indices_h[0])]
+   
     ids_list += [k for k,v in results_h]
-
-    
 
     # Content search
     results_c = []
     for col in embs['columns']:
         c_emb = np.array([embs['columns'][col]], dtype="float32")
+
+        while len(c_emb) == 1:
+            c_emb = c_emb[0]
+
+        c_emb = np.array([c_emb]).astype(np.float32)
         faiss.normalize_L2(c_emb)
 
         distances_c, indices_c = index_c.search(c_emb, k)
 
-        results_c+=[(inverted[r],distances_c[0][i])  for i, r in enumerate(indices_c[0])]
+        results_c+=[(inverted[r], distances_c[0][i]) for i, r in enumerate(indices_c[0])]
         ids_list+=[k for k,v in results_c]
 
     ids_list = list(set(ids_list)) # List with candidate tables id
@@ -74,11 +88,15 @@ def search(embs, index_h, index_c, inverted):
     # Ranking tablas
     ranking = dict()
     table_size = len(embs['columns']) # Columns number
+
     for id in ids_list:
         ranking[id]= getScore(id, results_h, results_c, table_size)
-
+        
     # Ordenar ranking
-    ranking_sort = sorted(ranking.items(), key=lambda x: x[1], reverse=True)    
+    ranking_sort = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
+   
+    ranking_sort = list(filter(lambda d: d[1]>0.7,  ranking_sort))
+    ranking_sort = list(filter(lambda d: d[0] != file, ranking_sort))
 
     return ranking_sort
 
@@ -87,26 +105,35 @@ def create_embeddings(table):
     embeddings = dict()
 
     # header embeddings
-    text =" ".join(map(str,table.columns.values)).lower()
-    embeddings['header'] =  getEmbeddings(text)
+    headers = table.columns.values
+    headers = filter(lambda col: 'Unnamed' not in col, headers) # Skip unnamed column
+    headers_text = ' '.join(map(str, headers))
+    embeddings['header'] =  getEmbeddings(headers_text)
 
     # column embeddings
     embeddings['columns'] = dict()
 
     for column in table.columns.values:
-        text = " ".join(map(str,table[column].values)).lower()
+
+        try:
+            # Lowercase the text because the sentence model is uncased
+            text = ' '.join(table[column].to_list()).lower()
+        except TypeError:
+            text = ' '.join(table[column].apply(str).to_list()).lower()
+
         # The maximum token length admitted by SentenceBERT is 256
         max_sequence_length = 256
         # Larger texts are cut into 256 token length pieces and their vectors are averaged
         # Take into account that a cell could have more than one token
-        list_tokens = text.split()
-        if len(list_tokens) > max_sequence_length:
+        
+        if len(text.split()) > max_sequence_length:
+            list_tokens = text.split()
             list_vectors = []
             for i in range(0, len(list_tokens), max_sequence_length):
                 list_vectors.append(getEmbeddings(' '.join(list_tokens[i:i+max_sequence_length])))
-                embeddings['columns'][column]= np.mean(list_vectors, axis=0).tolist()
+            embeddings['columns'][column] = np.mean(list_vectors, axis=0).tolist()
         else:
-            embeddings['columns'][column]=getEmbeddings(text)
+            embeddings['columns'][column] = getEmbeddings(text)
     
     return embeddings
 
@@ -119,7 +146,7 @@ def main():
     parser.add_argument('-i', '--input', default='experiments/data/benchmarks/table/queries.txt', help='Name of the input folder storing CSV tables')
     parser.add_argument('-d', '--data', default='experiments/data/wikitables_clean', help='Data directory')
     parser.add_argument('-n', '--indexDir', default='services/indexation/indexData', help='Inv')
-    parser.add_argument('-m', '--model', default='stb', choices=['stb', 'rbt','brt'],
+    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'rbt','brt'],
                         help='"stb" (Sentence-BERT), "rbt" (ROBERTA) or "brt" (BERT)')
     parser.add_argument('-p', '--percent', default='100', help='Content percentage index')
     parser.add_argument('-r', '--result', default='search_result/results.csv', help='Name of the output folder that stores the search results')
@@ -167,10 +194,11 @@ def main():
         embs = create_embeddings(table)
 
         # search
-        rank = search(embs, index_headers, index_content, inverted)
+        rank = search(embs, index_headers, index_content, inverted, path)
 
         # save result
         save_result(i, rank, args.result)
+    
 
     end_time = time.time()
     print('Search time: ' + str(round(end_time - start_time, 2)) + ' seconds')

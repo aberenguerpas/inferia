@@ -75,10 +75,15 @@ def index_table(table, key, index_content, invertedIndex):
             else:
                 vector = cols_emb[id:id+n_embeddings]
 
- 
-            vector = np.array(vector, dtype="float32")
+            
+            while len(vector) == 1:
+                    vector = vector[0]
+
+            vector = np.array([vector]).astype(np.float32)
+            #print(vector)
 
             faiss.normalize_L2(vector)
+
 
             id += n_embeddings
             
@@ -153,7 +158,7 @@ def main():
     start_time = time.time()
     parser = argparse.ArgumentParser(description='Process WikiTables corpus')
     parser.add_argument('-i', '--input', default='experiments/data/wikitables_clean', help='Name of the input folder storing CSV tables')
-    parser.add_argument('-m', '--model', default='stb', choices=['stb', 'rbt', 'brt'],
+    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'rbt', 'brt'],
                         help='Model to use: "rbt" (Sentence-BERT, Default), "rbt" (Roberta),'
                              ' "brt" (Bert)')
     parser.add_argument('-r', '--result', default='./result',
@@ -230,14 +235,21 @@ def main():
                     headers = filter(lambda col: 'Unnamed' not in col, headers) # Skip unnamed column
                     headers_text = ' '.join(map(str, headers))
                     embeddings = np.array([getEmbeddings(headers_text)], dtype="float32")
+                    #print('antes')
+                    #print(embeddings)
+                    while len(embeddings) == 1:
+                        embeddings = embeddings[0]
+                    
+                    embeddings = np.array([embeddings]).astype(np.float32)
                     faiss.normalize_L2(embeddings)
+                    #print('despues')
+                    #print(embeddings)
                     id = np.random.randint(0, 99999999999999, size=1)
                     invertedIndex[id[0]] = key
 
-                    if model_name != 'stb':
-                        embeddings =  np.array([item for sublist in embeddings for item in sublist], dtype="float32" ) # flat lists
+                    #if model_name != 'stb':
+                    #    embeddings =  np.array([item for sublist in embeddings for item in sublist], dtype="float32") # flat lists
 
-                    
                     index_headers.add_with_ids(embeddings, id)
                     index_table(table, key, index_content, invertedIndex)
                 else:
@@ -247,7 +259,7 @@ def main():
                 tables_discarded += 1
 
             # Save data every 10,000 files or after processing the last file
-            if (i+1) % 10000 == 0 or i == number_files-1:
+            if (i+1) % 100 == 0 or i == number_files-1:
                 end = i+1
                 if args.type == 'split':
                     data_similarity.to_csv(os.path.join(args.result, args.model + '_' + str(start) + '-' + str(end) + '.csv'))
