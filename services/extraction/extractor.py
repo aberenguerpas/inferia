@@ -30,7 +30,7 @@ def create_csv(input_dir, output_dir):
     for file in tqdm(list_files):
         input_data = pd.read_json(file, orient='index')
         for _, table in input_data.iterrows():
-            if table['numDataRows'] >= 1 and table['numCols'] > 0:  # Discard tables with less than 10 rows or no columns
+            if table['numDataRows'] >= 10 and table['numCols'] > 0:  # Discard tables with less than 10 rows or no columns
                 file_name = os.path.join(output_dir, table.name + '.csv')
                 #print('Processing file "' + file_name + '"')
                 # Columns 

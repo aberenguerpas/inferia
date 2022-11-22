@@ -17,10 +17,10 @@ def common_member(a, b):
 
 # Read the queries.txt tables
 
-tables_q = pd.read_csv("experiments/data/benchmarks/table/queries.txt", sep="\t")
+tables_q = pd.read_csv("experiments/data/benchmarks/table/queries.txt", sep="\t", header=None)
 tables_q = tables_q.iloc[:,1].tolist()
 
-tables_a = pd.read_csv("experiments/data/benchmarks/table/qrels.txt", sep="\t")
+tables_a = pd.read_csv("experiments/data/benchmarks/table/qrels.txt", sep="\t", header=None)
 tables_a = tables_a.iloc[:,2].tolist()
 
 tables_e = list(dict.fromkeys(tables_q + tables_a))

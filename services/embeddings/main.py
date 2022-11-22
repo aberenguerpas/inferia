@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from SentenceBert import SentenceBert
 from Bert import Bert
-from Roberta import Roberta
+from Allmpnet import Allmpnet
 
 app = FastAPI()
 
@@ -30,9 +30,9 @@ async def getEmbeddings(request: Request):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Embeddings microservice')
-    parser.add_argument('-m', '--model', default='stb', choices=['stb','brt','rbt'],
+    parser.add_argument('-m', '--model', default='stb', choices=['stb','brt','apn'],
                         help='Model to use: "stb" (Sentence-Bert, by default), "brt" (bert-base-uncased),'
-                             ' "rbt" (Roberta-base)')
+                             ' "apn" (Allmpnet)')
     args = parser.parse_args()
 
     checkGPU()
@@ -41,8 +41,8 @@ if __name__ == "__main__":
         model = SentenceBert()
     elif args.model == 'brt':
          model = Bert()
-    elif args.model == 'rbt':
-        model = Roberta()
+    elif args.model == 'apn':
+        model = Allmpnet()
     else:
         model = SentenceBert()
 

@@ -11,7 +11,7 @@ def save_result(id, rank, path_result):
     df = pd.DataFrame.from_records(rank, columns=['document_id', 'score'])
     df.reset_index(inplace=True)
     df = df.rename(columns = {'index':'rank'})
-    df['query_id'] = id + 1
+    df['query_id'] = id
     df['Q0'] = 'Q0'
     df['STANDARD'] = 'STANDARD'
     df['score'] = df['score'].round(3)
@@ -51,26 +51,25 @@ def search(embs, index_h, index_c, inverted, file):
     ids_list = []
 
     # Header search
-    # embedding normalization
-    h_emb = np.array([embs['header']], dtype="float32")
+    h_emb = embs['header']
 
     while len(h_emb) == 1:
         h_emb = h_emb[0]
     
     h_emb = np.array([h_emb]).astype(np.float32)
+
     faiss.normalize_L2(h_emb)
 
-    distances_h, indices_h = index_h.search(h_emb, 100)
+    distances_h, indices_h = index_h.search(h_emb, 200)
 
     results_h = [(inverted[r], distances_h[0][i]) for i, r in enumerate(indices_h[0])]
    
-    ids_list += [k for k,v in results_h]
+    ids_list += [k for k,_ in results_h]
 
     # Content search
     results_c = []
     for col in embs['columns']:
-        c_emb = np.array([embs['columns'][col]], dtype="float32")
-
+        c_emb = embs['columns'][col]
         while len(c_emb) == 1:
             c_emb = c_emb[0]
 
@@ -78,7 +77,6 @@ def search(embs, index_h, index_c, inverted, file):
         faiss.normalize_L2(c_emb)
 
         distances_c, indices_c = index_c.search(c_emb, k)
-
         results_c+=[(inverted[r], distances_c[0][i]) for i, r in enumerate(indices_c[0])]
         ids_list+=[k for k,v in results_c]
 
@@ -95,10 +93,10 @@ def search(embs, index_h, index_c, inverted, file):
     # Ordenar ranking
     ranking_sort = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
    
-    ranking_sort = list(filter(lambda d: d[1]>0.7,  ranking_sort))
-    ranking_sort = list(filter(lambda d: d[0] != file, ranking_sort))
+    #ranking_sort = list(filter(lambda d: d[1]>0.7,  ranking_sort))
+    ranking_sort = list(filter(lambda d: d[0] != file, ranking_sort)) # Se quita la propia query-table
 
-    return ranking_sort
+    return ranking_sort[:10]
 
 def create_embeddings(table):
 
@@ -108,8 +106,8 @@ def create_embeddings(table):
     headers = table.columns.values
     headers = filter(lambda col: 'Unnamed' not in col, headers) # Skip unnamed column
     headers_text = ' '.join(map(str, headers))
+    
     embeddings['header'] =  getEmbeddings(headers_text)
-
     # column embeddings
     embeddings['columns'] = dict()
 
@@ -146,17 +144,17 @@ def main():
     parser.add_argument('-i', '--input', default='experiments/data/benchmarks/table/queries.txt', help='Name of the input folder storing CSV tables')
     parser.add_argument('-d', '--data', default='experiments/data/wikitables_clean', help='Data directory')
     parser.add_argument('-n', '--indexDir', default='services/indexation/indexData', help='Inv')
-    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'rbt','brt'],
-                        help='"stb" (Sentence-BERT), "rbt" (ROBERTA) or "brt" (BERT)')
+    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'apn','brt'],
+                        help='"stb" (Sentence-BERT), "apn" (Allmpnet) or "brt" (BERT)')
     parser.add_argument('-p', '--percent', default='100', help='Content percentage index')
-    parser.add_argument('-r', '--result', default='search_result/results.csv', help='Name of the output folder that stores the search results')
+    parser.add_argument('-r', '--result', default='search_result/results', help='Name of the output folder that stores the search results')
     
     args = parser.parse_args()
 
     # remove old result files
     try:
-        if os.path.exists(args.result):
-            os.remove(args.result)
+        if os.path.exists(args.result+'_'+args.model+'.csv'):
+            os.remove(args.result+'_'+args.model+'.csv')
         
         dir = "./"+"/".join(args.result.split("/")[:-1])
 
@@ -165,8 +163,6 @@ def main():
 
     except Exception as e:
         print(e)
-
-    # load the collections
 
     # Headers collection
     index_headers = loadIndex(os.path.join(args.indexDir, args.model+'_headers.faiss'))
@@ -179,15 +175,13 @@ def main():
     files = queries[1].values
 
     # Read inversed Index
-
     inverted = loadInversedIndex(os.path.join(args.indexDir, args.model+'_invertedIndex'))
+
     # Read table
-
-
-    for i, path in enumerate(tqdm(files)):
+    for path in tqdm(files):
         #load table
         file = open(os.path.join(args.data, path)+'.csv')
-
+        id = queries[queries[1]==path].iloc[:,0].values[0]
         table = pd.read_csv(file)
 
         # create embeddings
@@ -197,11 +191,9 @@ def main():
         rank = search(embs, index_headers, index_content, inverted, path)
 
         # save result
-        save_result(i, rank, args.result)
+        save_result(id, rank, args.result+'_'+args.model+'.csv')
     
-
-    end_time = time.time()
-    print('Search time: ' + str(round(end_time - start_time, 2)) + ' seconds')
+    print('Search time: ' + str(round(time.time() - start_time, 2)) + ' seconds')
 
 
 if __name__ == "__main__":

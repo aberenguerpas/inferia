@@ -158,8 +158,8 @@ def main():
     start_time = time.time()
     parser = argparse.ArgumentParser(description='Process WikiTables corpus')
     parser.add_argument('-i', '--input', default='experiments/data/wikitables_clean', help='Name of the input folder storing CSV tables')
-    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'rbt', 'brt'],
-                        help='Model to use: "rbt" (Sentence-BERT, Default), "rbt" (Roberta),'
+    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'apn', 'brt'],
+                        help='Model to use: "sbt" (Sentence-BERT, Default), "apn" (Allmpnet),'
                              ' "brt" (Bert)')
     parser.add_argument('-r', '--result', default='./result',
                         help='Name of the output folder that stores the similarity values calculated')
@@ -235,15 +235,12 @@ def main():
                     headers = filter(lambda col: 'Unnamed' not in col, headers) # Skip unnamed column
                     headers_text = ' '.join(map(str, headers))
                     embeddings = np.array([getEmbeddings(headers_text)], dtype="float32")
-                    #print('antes')
-                    #print(embeddings)
+       
                     while len(embeddings) == 1:
                         embeddings = embeddings[0]
                     
                     embeddings = np.array([embeddings]).astype(np.float32)
                     faiss.normalize_L2(embeddings)
-                    #print('despues')
-                    #print(embeddings)
                     id = np.random.randint(0, 99999999999999, size=1)
                     invertedIndex[id[0]] = key
 
