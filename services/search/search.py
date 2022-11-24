@@ -93,7 +93,7 @@ def search(embs, index_h, index_c, inverted, file):
     # Ordenar ranking
     ranking_sort = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
    
-    #ranking_sort = list(filter(lambda d: d[1]>0.7,  ranking_sort))
+    ranking_sort = list(filter(lambda d: d[1]>0.75,  ranking_sort))
     ranking_sort = list(filter(lambda d: d[0] != file, ranking_sort)) # Se quita la propia query-table
 
     return ranking_sort[:10]
