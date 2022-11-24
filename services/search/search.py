@@ -96,7 +96,7 @@ def search(embs, index_h, index_c, inverted, file):
     ranking_sort = list(filter(lambda d: d[1]>0.7,  ranking_sort))
     ranking_sort = list(filter(lambda d: d[0] != file, ranking_sort)) # Se quita la propia query-table
 
-    return ranking_sort#[:10]
+    return ranking_sort[:10]
 
 def create_embeddings(table):
 
