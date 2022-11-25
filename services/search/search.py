@@ -39,7 +39,7 @@ def getScore(id, results_h, results_c, table_size):
     else:
         score_h = 0
 
-    score = score_c*0.6 + score_h*0.4
+    score = score_c*0.7 + score_h*0.3
 
     return score
 
