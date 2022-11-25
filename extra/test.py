@@ -30,7 +30,7 @@ tables_f = list(map(lambda table: table.split(".")[0], tables_f))
 tables_common = list(common_member(tables_e, tables_f))
 
 
-tables_q = tables_q[tables_q.iloc[:,1].isin(tables_common)] # Solo las queries que no han sido filtradas
+tables_q = tables_q[tables_q.iloc[:,1].isin(tables_common)] # Solo las queries que no han sido filtradass
 
 ids_filtrados = tables_q.iloc[:,0].tolist()
 

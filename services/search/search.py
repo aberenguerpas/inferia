@@ -46,6 +46,8 @@ def getScore(id, results_h, results_c, table_size):
 
 def search(embs, index_h, index_c, inverted, file):
 
+    
+
     k = 2000 # n results
 
     ids_list = []
@@ -75,10 +77,10 @@ def search(embs, index_h, index_c, inverted, file):
 
         c_emb = np.array([c_emb]).astype(np.float32)
         faiss.normalize_L2(c_emb)
-
-        distances_c, indices_c = index_c.search(c_emb, k)
-        results_c+=[(inverted[r], distances_c[0][i]) for i, r in enumerate(indices_c[0])]
-        ids_list+=[k for k,v in results_c]
+        if not np.isnan(c_emb).all():
+            distances_c, indices_c = index_c.search(c_emb, k)
+            results_c+=[(inverted[r], distances_c[0][i]) for i, r in enumerate(indices_c[0])]
+            ids_list+=[k for k,v in results_c]
 
     ids_list = list(set(ids_list)) # List with candidate tables id
 
@@ -107,7 +109,7 @@ def create_embeddings(table):
     headers = filter(lambda col: 'Unnamed' not in col, headers) # Skip unnamed column
     headers_text = ' '.join(map(str, headers))
     
-    embeddings['header'] =  getEmbeddings(headers_text)
+    embeddings['header'] =  getEmbeddings([headers_text])
     # column embeddings
     embeddings['columns'] = dict()
 
@@ -128,10 +130,10 @@ def create_embeddings(table):
             list_tokens = text.split()
             list_vectors = []
             for i in range(0, len(list_tokens), max_sequence_length):
-                list_vectors.append(getEmbeddings(' '.join(list_tokens[i:i+max_sequence_length])))
+                list_vectors.append(getEmbeddings([' '.join(list_tokens[i:i+max_sequence_length])]))
             embeddings['columns'][column] = np.mean(list_vectors, axis=0).tolist()
         else:
-            embeddings['columns'][column] = getEmbeddings(text)
+            embeddings['columns'][column] = getEmbeddings([text])
     
     return embeddings
 
@@ -144,8 +146,8 @@ def main():
     parser.add_argument('-i', '--input', default='experiments/data/benchmarks/table/queries.txt', help='Name of the input folder storing CSV tables')
     parser.add_argument('-d', '--data', default='experiments/data/wikitables_clean', help='Data directory')
     parser.add_argument('-n', '--indexDir', default='services/indexation/indexData', help='Inv')
-    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'apn','brt'],
-                        help='"stb" (Sentence-BERT), "apn" (Allmpnet) or "brt" (BERT)')
+    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'apn','brt','fst','w2v'],
+                        help='"stb" (Sentence-BERT), "apn" (Allmpnet),"fst" (FastText),"w2v" (Word2Vec) or "brt" (BERT)')
     parser.add_argument('-p', '--percent', default='100', help='Content percentage index')
     parser.add_argument('-r', '--result', default='search_result/results', help='Name of the output folder that stores the search results')
     

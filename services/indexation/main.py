@@ -75,22 +75,23 @@ def index_table(table, key, index_content, invertedIndex):
             else:
                 vector = cols_emb[id:id+n_embeddings]
 
-            
-            while len(vector) == 1:
-                    vector = vector[0]
+            if not np.isnan(vector).all().all():
+                while len(vector) == 1:
+                        vector = vector[0]
+                        
 
-            vector = np.array([vector]).astype(np.float32)
-                #print(vector)
-            if vector.size>0:
-                faiss.normalize_L2(vector)
+                vector = np.array([vector]).astype(np.float32)
+                    #print(vector)
+                if vector.size>0:
+                    faiss.normalize_L2(vector)
 
+                    id += n_embeddings
+                    
+                    idx = np.random.randint(0, 99999999999999, size=1)
+                    invertedIndex[idx[0]] = key
 
-                id += n_embeddings
-                
-                idx = np.random.randint(0, 99999999999999, size=1)
-                invertedIndex[idx[0]] = key
+                    index_content.add_with_ids(vector, idx)
 
-                index_content.add_with_ids(vector, idx)
         #milvus.insertData(to_insert, model_name+"_content_100")
         
     except Exception as e:
@@ -157,8 +158,8 @@ def main():
     start_time = time.time()
     parser = argparse.ArgumentParser(description='Process WikiTables corpus')
     parser.add_argument('-i', '--input', default='experiments/data/wikitables_clean', help='Name of the input folder storing CSV tables')
-    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'apn', 'brt','fst'],
-                        help='Model to use: "sbt" (Sentence-BERT, Default), "apn" (Allmpnet),"fst" (fastText),'
+    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'apn', 'brt','fst','w2v'],
+                        help='Model to use: "sbt" (Sentence-BERT, Default), "apn" (Allmpnet),"fst" (fastText), "w2v"(Word2Vec)) '
                              ' "brt" (Bert)')
     parser.add_argument('-r', '--result', default='./result',
                         help='Name of the output folder that stores the similarity values calculated')
@@ -183,7 +184,7 @@ def main():
 
     if model_name == 'stb':
         dimensions = 384
-    elif model_name == 'fst':
+    elif model_name == 'fst' or model_name == 'w2v':
         dimensions = 300
     else:
         dimensions = 768
@@ -260,7 +261,7 @@ def main():
                 tables_discarded += 1
 
             # Save data every 10,000 files or after processing the last file
-            if (i+1) % 100000 == 0 or i == number_files-1:
+            if (i+1) % 1000 == 0 or i == number_files-1:
                 end = i+1
                 if args.type == 'split':
                     data_similarity.to_csv(os.path.join(args.result, args.model + '_' + str(start) + '-' + str(end) + '.csv'))
