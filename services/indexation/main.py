@@ -80,22 +80,21 @@ def index_table(table, key, index_content, invertedIndex):
                     vector = vector[0]
 
             vector = np.array([vector]).astype(np.float32)
-            #print(vector)
+                #print(vector)
+            if vector.size>0:
+                faiss.normalize_L2(vector)
 
-            faiss.normalize_L2(vector)
 
+                id += n_embeddings
+                
+                idx = np.random.randint(0, 99999999999999, size=1)
+                invertedIndex[idx[0]] = key
 
-            id += n_embeddings
-            
-            idx = np.random.randint(0, 99999999999999, size=1)
-            invertedIndex[idx[0]] = key
-
-            index_content.add_with_ids(vector, idx)
+                index_content.add_with_ids(vector, idx)
         #milvus.insertData(to_insert, model_name+"_content_100")
         
     except Exception as e:
-       print(vector.shape)
-       print(n_embeddings)
+       print(vector)
        #print(col_emb)
        print(e)
        traceback.print_exc()
@@ -158,8 +157,8 @@ def main():
     start_time = time.time()
     parser = argparse.ArgumentParser(description='Process WikiTables corpus')
     parser.add_argument('-i', '--input', default='experiments/data/wikitables_clean', help='Name of the input folder storing CSV tables')
-    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'apn', 'brt'],
-                        help='Model to use: "sbt" (Sentence-BERT, Default), "apn" (Allmpnet),'
+    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'apn', 'brt','fst'],
+                        help='Model to use: "sbt" (Sentence-BERT, Default), "apn" (Allmpnet),"fst" (fastText),'
                              ' "brt" (Bert)')
     parser.add_argument('-r', '--result', default='./result',
                         help='Name of the output folder that stores the similarity values calculated')
@@ -184,6 +183,8 @@ def main():
 
     if model_name == 'stb':
         dimensions = 384
+    elif model_name == 'fst':
+        dimensions = 300
     else:
         dimensions = 768
 
@@ -234,7 +235,8 @@ def main():
                     headers = table.columns.values
                     headers = filter(lambda col: 'Unnamed' not in col, headers) # Skip unnamed column
                     headers_text = ' '.join(map(str, headers))
-                    embeddings = np.array([getEmbeddings(headers_text)], dtype="float32")
+
+                    embeddings = np.array([getEmbeddings([headers_text])], dtype="float32")
        
                     while len(embeddings) == 1:
                         embeddings = embeddings[0]
@@ -246,9 +248,11 @@ def main():
 
                     #if model_name != 'stb':
                     #    embeddings =  np.array([item for sublist in embeddings for item in sublist], dtype="float32") # flat lists
-
-                    index_headers.add_with_ids(embeddings, id)
-                    index_table(table, key, index_content, invertedIndex)
+          
+                    if embeddings.size>0:
+                        
+                        index_headers.add_with_ids(embeddings, id)
+                        index_table(table, key, index_content, invertedIndex)
                 else:
                     data_similarity.loc[os.path.basename(file).split('.')[0]] = calculate_similarity(table, args.model, args.rstate)
 
@@ -282,6 +286,7 @@ def main():
                     saveInvertedIndex(invertedIndex, os.path.join(args.savemb, model_name+'_invertedIndex'))
 
         except Exception as e:
+   
             print(e)
             print(path)
             traceback.print_exc()
