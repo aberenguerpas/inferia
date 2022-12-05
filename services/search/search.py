@@ -150,8 +150,14 @@ def main():
                         help='"stb" (Sentence-BERT), "apn" (Allmpnet),"fst" (FastText),"w2v" (Word2Vec) or "brt" (BERT)')
     parser.add_argument('-p', '--percent', default='100', help='Content percentage index')
     parser.add_argument('-r', '--result', default='search_result/results', help='Name of the output folder that stores the search results')
-    
+    parser.add_argument('-re','--reduce', choices=['random','duplicates'], help="Set reduction type of the column")
+
     args = parser.parse_args()
+
+    reduce = args.reduce
+
+    if reduce is None:
+        reduce = ''
 
     # remove old result files
     try:
@@ -167,17 +173,17 @@ def main():
         print(e)
 
     # Headers collection
-    index_headers = loadIndex(os.path.join(args.indexDir, args.model+'_headers.faiss'))
+    index_headers = loadIndex(os.path.join(args.indexDir, reduce+"_"+args.model+'_headers.faiss'))
 
     # Content collection
-    index_content = loadIndex(os.path.join(args.indexDir, args.model+'_content.faiss'))
+    index_content = loadIndex(os.path.join(args.indexDir, reduce+"_"+args.model+'_content.faiss'))
 
     # Read input file
     queries = pd.read_csv(args.input, sep="\t", header=None)
     files = queries[1].values
 
     # Read inversed Index
-    inverted = loadInversedIndex(os.path.join(args.indexDir, args.model+'_invertedIndex'))
+    inverted = loadInversedIndex(os.path.join(args.indexDir, reduce+"_"+args.model+'_invertedIndex'))
 
     # Read table
     for path in tqdm(files):

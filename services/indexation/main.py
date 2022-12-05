@@ -10,8 +10,24 @@ import pandas as pd
 import traceback
 from faissUtils import *
 import faiss
+import math
 
-def get_column_text(column):
+
+def reduce_col(col, mode):
+   
+    if mode == 'random':
+        per_red = 0.6
+        n_rows = math.floor(len(col.index) * per_red)
+        new_col = col.sample(n_rows, random_state=1)
+
+    elif mode == 'duplicates':
+        new_col = col.drop_duplicates()
+    else:
+        return col
+    
+    return new_col
+
+def get_column_text(column, reduce):
     """
     Get the word embedding vector that represents all the text contained in a column.
     :param column: content of the column
@@ -23,6 +39,8 @@ def get_column_text(column):
     if column.size > 0:
         if column.dtype != object or isinstance(column.iloc[0], bool):
             column = column.apply(str)  # Convert numbers and booleans to string
+        #Reduce column content
+        column = reduce_col(column, reduce)
 
         # Transform to string in case Pandas assigns "object" type to numeric columns and "join" fails (sometimes it happens)
         try:
@@ -52,10 +70,10 @@ def get_column_text(column):
         return []
 
 
-def index_table(table, key, index_content, invertedIndex):
+def index_table(table, key, index_content, invertedIndex, reduce):
     cols_d = dict()
     for i, column in enumerate(table):
-        cols_d[i] = get_column_text(table[column])
+        cols_d[i] = get_column_text(table[column], reduce)
 
     try:
         data = sum(cols_d.values(), []) # flatten data
@@ -169,6 +187,7 @@ def main():
     parser.add_argument('-rs', '--rstate', default=None, type=int, help='Seed value for random selection of rows')
     parser.add_argument('-e', '--savemb', default='services/indexation/indexData', help='path to save indexed embeddings')
     parser.add_argument('-t', '--type', default='all', choices=['all', 'split'], help='Experiment type "all" to index full table or "split" to index subtables 1,5,10,20%...90%')
+    parser.add_argument('-re','--reduce', choices=['random','duplicates'], help="Set reduction type of the column")
     args = parser.parse_args()
 
     # Config
@@ -188,6 +207,12 @@ def main():
         dimensions = 300
     else:
         dimensions = 768
+    
+    # Reduce type
+    reduce = args.reduce
+
+    if reduce is None:
+        reduce = ''
 
     invertedIndex = dict()
 
@@ -230,6 +255,8 @@ def main():
             table = pd.read_csv(file)
             table.dropna(axis=1, how='all', inplace=True)  # Remove columns where all elements are NaN
             table.dropna(how='all', inplace=True)  # Remove rows where all elements are NaN
+
+
             if len(table.index) >= 1:  # Discard tables with less than 10 rows after dropping NaN
                 if args.type == 'all':
                     # index table head embedding 
@@ -253,7 +280,7 @@ def main():
                     if embeddings.size>0:
                         
                         index_headers.add_with_ids(embeddings, id)
-                        index_table(table, key, index_content, invertedIndex)
+                        index_table(table, key, index_content, invertedIndex, reduce)
                 else:
                     data_similarity.loc[os.path.basename(file).split('.')[0]] = calculate_similarity(table, args.model, args.rstate)
 
@@ -282,9 +309,9 @@ def main():
                         pass
                         #milvus.buildIndex(model_name+"_content_"+str(i))
                 else:
-                    saveIndex(index_headers, os.path.join(args.savemb, model_name+'_headers.faiss'))
-                    saveIndex(index_content, os.path.join(args.savemb, model_name+'_content.faiss'))
-                    saveInvertedIndex(invertedIndex, os.path.join(args.savemb, model_name+'_invertedIndex'))
+                    saveIndex(index_headers, os.path.join(args.savemb, reduce+"_"+model_name+'_headers.faiss'))
+                    saveIndex(index_content, os.path.join(args.savemb, reduce+"_"+model_name+'_content.faiss'))
+                    saveInvertedIndex(invertedIndex, os.path.join(args.savemb, reduce+"_"+model_name+'_invertedIndex'))
 
         except Exception as e:
    
