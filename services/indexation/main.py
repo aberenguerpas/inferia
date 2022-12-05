@@ -288,7 +288,7 @@ def main():
                 tables_discarded += 1
 
             # Save data every 10,000 files or after processing the last file
-            if (i+1) % 1000 == 0 or i == number_files-1:
+            if (i+1) % 1000000 == 0 or i == number_files-1:
                 end = i+1
                 if args.type == 'split':
                     data_similarity.to_csv(os.path.join(args.result, args.model + '_' + str(start) + '-' + str(end) + '.csv'))
