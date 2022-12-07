@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from SentenceBert import SentenceBert
 from Bert import Bert
-from Elmo import Elmo
+from Roberta import Roberta
 from FastText import FastText
 from W2vec import Word2Vec
 
@@ -32,9 +32,9 @@ async def getEmbeddings(request: Request):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Embeddings microservice')
-    parser.add_argument('-m', '--model', default='stb', choices=['stb','brt','elm','fst','w2v'],
+    parser.add_argument('-m', '--model', default='stb', choices=['stb','brt','rbt','fst','w2v'],
                         help='Model to use: "stb" (Sentence-Bert, by default), "brt" (bert-base-uncased),'
-                             ' "elm" (Elmo), "fst" (fastText), "w2v" (Word2Vec)')
+                             ' "rbt" (Roberta), "fst" (fastText), "w2v" (Word2Vec)')
     args = parser.parse_args()
 
     checkGPU()
@@ -43,8 +43,8 @@ if __name__ == "__main__":
         model = SentenceBert()
     elif args.model == 'brt':
          model = Bert()
-    elif args.model == 'elm':
-        model = Elmo()
+    elif args.model == 'rbt':
+        model = Roberta()
     elif args.model == 'fst':
         model = FastText()
     elif args.model == 'w2v':
