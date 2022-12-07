@@ -176,8 +176,8 @@ def main():
     start_time = time.time()
     parser = argparse.ArgumentParser(description='Process WikiTables corpus')
     parser.add_argument('-i', '--input', default='experiments/data/wikitables_clean', help='Name of the input folder storing CSV tables')
-    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'apn', 'brt','fst','w2v'],
-                        help='Model to use: "sbt" (Sentence-BERT, Default), "apn" (Allmpnet),"fst" (fastText), "w2v"(Word2Vec)) '
+    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'elm', 'brt','fst','w2v'],
+                        help='Model to use: "sbt" (Sentence-BERT, Default), "elm" (Elmo),"fst" (fastText), "w2v"(Word2Vec)) '
                              ' "brt" (Bert)')
     parser.add_argument('-r', '--result', default='./result',
                         help='Name of the output folder that stores the similarity values calculated')
@@ -205,6 +205,8 @@ def main():
         dimensions = 384
     elif model_name == 'fst' or model_name == 'w2v':
         dimensions = 300
+    elif model_name == 'elm':
+        dimensions = 1024
     else:
         dimensions = 768
     
