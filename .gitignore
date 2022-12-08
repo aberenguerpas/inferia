@@ -134,7 +134,7 @@ volumes/
 env/
 experiments/data/wikitables/
 experiments/data/wikitables_clean/
-result/
+result_*/
 search_result/
 services/indexation/indexData/
 search_result/
