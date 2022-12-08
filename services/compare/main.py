@@ -194,7 +194,7 @@ def main():
                 tables_discarded += 1
 
             # Save data every 10,000 files or after processing the last file
-            if (i+1) % 10 == 0 or i == number_files-1:
+            if (i+1) % 10000 == 0 or i == number_files-1:
                 end = i+1
                 data_similarity.to_csv(os.path.join(args.result+"_"+args.model, args.model + '_' + str(start) + '-' + str(end) + '.csv'))
                 data_similarity = data_similarity[0:0]  # Erase the rows and keep the same DataFrame structure (columns)
