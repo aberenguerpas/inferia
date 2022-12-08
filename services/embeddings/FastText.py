@@ -17,8 +17,6 @@ class FastText:
                 list_tokens = [token for token in element if token in self.model]
                 if list_tokens:
                     result.append(np.mean(self.model[list_tokens], axis=0))
-                #else:
-                #    result.append([])
         else:
             list_tokens = [token for token in data[0].split(' ') if token in self.model]
             if list_tokens:

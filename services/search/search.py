@@ -6,6 +6,7 @@ import pandas as pd
 from utils import *
 import numpy as np
 import faiss
+import re
 
 def save_result(id, rank, path_result):
     df = pd.DataFrame.from_records(rank, columns=['document_id', 'score'])
@@ -45,8 +46,6 @@ def getScore(id, results_h, results_c, table_size):
 
 
 def search(embs, index_h, index_c, inverted, file):
-
-    
 
     k = 2000 # n results
 
@@ -108,6 +107,8 @@ def create_embeddings(table):
     headers = table.columns.values
     headers = filter(lambda col: 'Unnamed' not in col, headers) # Skip unnamed column
     headers_text = ' '.join(map(str, headers))
+
+    headers_text = re.sub(r'[^\w\s]', '', headers_text)
     
     embeddings['header'] =  getEmbeddings([headers_text])
     # column embeddings
@@ -121,6 +122,7 @@ def create_embeddings(table):
         except TypeError:
             text = ' '.join(table[column].apply(str).to_list()).lower()
 
+        text = re.sub(r'[^\w\s]', '', text)
         # The maximum token length admitted by SentenceBERT is 256
         max_sequence_length = 256
         # Larger texts are cut into 256 token length pieces and their vectors are averaged
@@ -146,8 +148,8 @@ def main():
     parser.add_argument('-i', '--input', default='experiments/data/benchmarks/table/queries.txt', help='Name of the input folder storing CSV tables')
     parser.add_argument('-d', '--data', default='experiments/data/wikitables_clean', help='Data directory')
     parser.add_argument('-n', '--indexDir', default='services/indexation/indexData', help='Inv')
-    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'apn','brt','fst','w2v'],
-                        help='"stb" (Sentence-BERT), "apn" (Allmpnet),"fst" (FastText),"w2v" (Word2Vec) or "brt" (BERT)')
+    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'rbt','brt','fst','w2v'],
+                        help='"stb" (Sentence-BERT), "rbt" (Roberta),"fst" (FastText),"w2v" (Word2Vec) or "brt" (BERT)')
     parser.add_argument('-p', '--percent', default='100', help='Content percentage index')
     parser.add_argument('-r', '--result', default='search_result/results', help='Name of the output folder that stores the search results')
     parser.add_argument('-re','--reduce', choices=['random','duplicates'], help="Set reduction type of the column")

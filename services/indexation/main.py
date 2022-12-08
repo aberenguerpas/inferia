@@ -11,7 +11,7 @@ import traceback
 from faissUtils import *
 import faiss
 import math
-
+import re
 
 def reduce_col(col, mode):
    
@@ -53,7 +53,7 @@ def get_column_text(column, reduce):
         max_sequence_length = 256
         # Larger texts are cut into 256 token length pieces and their vectors are averaged
         # Take into account that a cell could have more than one token
-
+        text = re.sub(r'[^\w\s]', '', text)
         if len(text.split()) > max_sequence_length:
 
             list_tokens = text.split()
@@ -77,14 +77,9 @@ def index_table(table, key, index_content, invertedIndex, reduce):
 
     try:
         data = sum(cols_d.values(), []) # flatten data
-
         cols_emb = getEmbeddings(data)
 
         id = 0
-        to_insert = []
-        to_insert.append([])
-        to_insert.append([])
-        to_insert.append([])
         for i, column in enumerate(table):
             n_embeddings = len(cols_d[i])
 
@@ -93,10 +88,10 @@ def index_table(table, key, index_content, invertedIndex, reduce):
             else:
                 vector = cols_emb[id:id+n_embeddings]
 
+
             if not np.isnan(vector).all().all():
                 while len(vector) == 1:
                         vector = vector[0]
-                        
 
                 vector = np.array([vector]).astype(np.float32)
                     #print(vector)
@@ -107,10 +102,7 @@ def index_table(table, key, index_content, invertedIndex, reduce):
                     
                     idx = np.random.randint(0, 99999999999999, size=1)
                     invertedIndex[idx[0]] = key
-
                     index_content.add_with_ids(vector, idx)
-
-        #milvus.insertData(to_insert, model_name+"_content_100")
         
     except Exception as e:
        print(vector)
@@ -290,7 +282,7 @@ def main():
                 tables_discarded += 1
 
             # Save data every 10,000 files or after processing the last file
-            if (i+1) % 1000000 == 0 or i == number_files-1:
+            if (i+1) % 100000 == 0 or i == number_files-1:
                 end = i+1
                 if args.type == 'split':
                     data_similarity.to_csv(os.path.join(args.result, args.model + '_' + str(start) + '-' + str(end) + '.csv'))
