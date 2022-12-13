@@ -16,7 +16,7 @@ import re
 def reduce_col(col, mode):
    
     if mode == 'random':
-        per_red = 0.6
+        per_red = 0.5
         n_rows = math.floor(len(col.index) * per_red)
         new_col = col.sample(n_rows, random_state=1)
 
