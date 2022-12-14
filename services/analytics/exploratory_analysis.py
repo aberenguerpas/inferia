@@ -14,7 +14,7 @@ def main():
 
     data = []
     for file in list_files:
-        df = pd.read_csv(file)
+        df = pd.read_csv(file, encoding = 'ISO-8859-1')
 
         data.append([len(df.index),len(df.columns)])
         #table = pd.concat([table, new_table], axis=0)  # Add the rows of new the new table to the previous one
