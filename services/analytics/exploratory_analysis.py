@@ -5,6 +5,7 @@ import os
 from tqdm import tqdm
 
 def main():
+    pd.set_option('display.float_format', lambda x: '%.2f' % x)
     parser = argparse.ArgumentParser(description='Corpus Exploratory Analysis')
     parser.add_argument('-i', '--input', required=True,
                         help='Name of the input folder storing the corpus CSV files ')
