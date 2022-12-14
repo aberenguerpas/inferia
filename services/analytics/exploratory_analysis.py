@@ -23,7 +23,7 @@ def main():
     df_result = pd.DataFrame(data=data ,columns=['n_rows', 'n_columns'])
 
     # filter outliers
-    df_result = df_result[df_result['n_rows']>10000]
+    df_result = df_result[df_result['n_rows']>100000]
     df_result = df_result[df_result['n_rows']<1000000]
 
 
