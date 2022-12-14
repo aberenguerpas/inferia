@@ -26,7 +26,7 @@ def main():
             
             df = pd.read_csv(file, encoding = 'ISO-8859-1', on_bad_lines='skip')
 
-            if len(df.index)>10 and len(df.index)<100000:
+            if len(df.index)>1000 and len(df.index)<1000000:
                 df.to_csv(args.output+"/"+file_name, index=False)
             else:
                 discarted+=1

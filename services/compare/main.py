@@ -184,7 +184,8 @@ def main():
         file = open(os.path.join(args.input, path))
 
         try:
-            table = pd.read_csv(file)
+            table = pd.read_csv(file, encoding = 'ISO-8859-1', on_bad_lines='skip')
+            
             table.dropna(axis=1, how='all', inplace=True)  # Remove columns where all elements are NaN
             table.dropna(how='all', inplace=True)  # Remove rows where all elements are NaN
 
