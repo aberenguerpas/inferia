@@ -60,7 +60,6 @@ def get_column_text(column, reduce):
            
             list_texts = []
             for i in range(0, column.size, max_sequence_length):
-                
                 list_texts.append(' '.join(list_tokens[i:i+max_sequence_length]))
             
             return list_texts
@@ -106,7 +105,6 @@ def index_table(table, key, index_content, invertedIndex, reduce):
         
     except Exception as e:
        print(vector)
-       #print(col_emb)
        print(e)
        traceback.print_exc()
 

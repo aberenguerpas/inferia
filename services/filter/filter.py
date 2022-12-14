@@ -23,7 +23,6 @@ def main():
         
         for file in list_files:
             file_name = file.split("/")[-1]
-            
             df = pd.read_csv(file, encoding = 'ISO-8859-1', on_bad_lines='skip')
 
             if len(df.index)>1000 and len(df.index)<1000000:
