@@ -2,7 +2,7 @@ import argparse
 import glob
 import pandas as pd
 import os
-
+from tqdm import tqdm
 
 def main():
     parser = argparse.ArgumentParser(description='Corpus Exploratory Analysis')
@@ -13,8 +13,8 @@ def main():
     list_files = glob.glob(os.path.join(args.input, '*.csv'))
 
     data = []
-    for file in list_files:
-        df = pd.read_csv(file, encoding = 'ISO-8859-1')
+    for file in tqdm(list_files):
+        df = pd.read_csv(file, encoding = 'ISO-8859-1', on_bad_lines='skip')
 
         data.append([len(df.index),len(df.columns)])
         #table = pd.concat([table, new_table], axis=0)  # Add the rows of new the new table to the previous one
