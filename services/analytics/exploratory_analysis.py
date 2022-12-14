@@ -23,7 +23,9 @@ def main():
     df_result = pd.DataFrame(data=data ,columns=['n_rows', 'n_columns'])
 
     # filter outliers
-    df_result = df_result[df_result['n_rows']<100000]
+    df_result = df_result[df_result['n_rows']>1000]
+    df_result = df_result[df_result['n_rows']<1000000]
+
 
     pd.set_option('display.max_columns', None)  # Show all the column values
     print('All:')
