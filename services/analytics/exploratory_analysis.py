@@ -28,6 +28,9 @@ def main():
     print('Mean:')
     print( df_result.mean())
 
+    ax = df_result.plot.hist(bins=12, alpha=0.5)
+    fig = ax.get_figure()
+    fig.savefig('histogram.pdf')
 
 if __name__ == '__main__':
     main()
