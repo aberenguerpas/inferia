@@ -114,8 +114,9 @@ def calculate_similarity(table, random_state):
         table_d[i] = get_column_text(table[column])
 
     data_table = sum(table_d.values(), []) # flatten data
+    print(data_table)
     vectors_table = getEmbeddings(data_table)
-
+    
     id_table = 0
 
     for i, column in enumerate(table):
