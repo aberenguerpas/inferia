@@ -114,7 +114,6 @@ def calculate_similarity(table, random_state):
         table_d[i] = get_column_text(table[column])
 
     data_table = sum(table_d.values(), []) # flatten data
-    print(data_table)
     vectors_table = getEmbeddings(data_table)
 
     id_table = 0
@@ -186,8 +185,6 @@ def main():
 
         try:
             table = pd.read_csv(file, encoding = 'ISO-8859-1', on_bad_lines='skip')
-
-            print(table.head())
             
             table.dropna(axis=1, how='all', inplace=True)  # Remove columns where all elements are NaN
             table.dropna(how='all', inplace=True)  # Remove rows where all elements are NaN
