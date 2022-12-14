@@ -153,7 +153,7 @@ def main():
     start_time = time.time()
     parser = argparse.ArgumentParser(description='Process WikiTables corpus')
     parser.add_argument('-i', '--input', default='experiments/data/wikitables_clean', help='Name of the input folder storing CSV tables')
-    parser.add_argument('-m', '--model', default='brt', choices=['stb', 'rbt', 'brt','fst','w2v'],
+    parser.add_argument('-m', '--model', default='brt',
                         help='Model to use: "sbt" (Sentence-BERT, Default), "rbt" (Roberta),"fst" (fastText), "w2v"(Word2Vec)) '
                              ' "brt" (Bert)')
     parser.add_argument('-r', '--result', default='./result',
