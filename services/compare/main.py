@@ -123,6 +123,7 @@ def calculate_similarity(table, random_state):
 
         if column_text:
             if len(column_text)>50:
+                print('entra')
                 aux = []
                 for i in range(0, len(column_text), 50):
                    aux.append(getEmbeddings(column_text[i:50]))
