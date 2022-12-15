@@ -86,7 +86,7 @@ def compare_tables(vector_table, subtable):
             vector_subtable = []
 
         # Compare each column from the table with the corresponding column in the subtable
-        print(vector_table[column])
+        print(vector_table[column], vector_subtable)
         if vector_table[column] and vector_subtable:  # Discard empty lists
 
             output = 1 - spatial.distance.cosine(vector_table[column], vector_subtable)
