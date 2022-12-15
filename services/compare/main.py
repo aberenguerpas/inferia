@@ -74,8 +74,8 @@ def compare_tables(vector_table, subtable):
             if len(column_text)>50:
                 aux = []
                 for i in range(0, len(column_text), 50):
-                    if column_text[i:50]:
-                        aux.append(getEmbeddings(column_text[i:50]))
+                    if column_text[i:i+50]:
+                        aux+=getEmbeddings(column_text[i:i+50])
 
                 vectors_subtable.append(aux)
             else:
@@ -97,8 +97,7 @@ def compare_tables(vector_table, subtable):
             vector_subtable = []
 
         # Compare each column from the table with the corresponding column in the subtable
-        if len(vector_table[column])==50:
-            print(vector_table[column])
+
         if vector_table[column] and vector_subtable:  # Discard empty lists
 
             output = 1 - spatial.distance.cosine(vector_table[column], vector_subtable)
@@ -127,8 +126,8 @@ def calculate_similarity(table, random_state):
             if len(column_text)>50:
                 aux = []
                 for i in range(0, len(column_text), 50):
-                    if column_text[i:50]:
-                        aux.append(getEmbeddings(column_text[i:50]))
+                    if column_text[i:i+50]:
+                        aux+=getEmbeddings(column_text[i:i+50])
 
                 vectors_table.append(aux)
             else:
