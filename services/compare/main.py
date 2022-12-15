@@ -97,7 +97,7 @@ def compare_tables(vector_table, subtable):
             vector_subtable = []
 
         # Compare each column from the table with the corresponding column in the subtable
-
+        print(len(vector_table[column],len(vector_subtable)))
         if vector_table[column] and vector_subtable:  # Discard empty lists
 
             output = 1 - spatial.distance.cosine(vector_table[column], vector_subtable)
@@ -142,7 +142,6 @@ def calculate_similarity(table, random_state):
 
         if n_vectors_table > 1:
             vector_table[column] = np.mean(vectors_table[i], axis=0).tolist()
-            print(vector_table[column])
         elif  n_vectors_table == 1:
             vector_table[column] = vectors_table[i][0]
         else:
