@@ -79,7 +79,7 @@ def compare_tables(vector_table, subtable):
         n_vectors_subtable = len(vectors_subtable[i]) 
 
         if n_vectors_subtable > 1:
-            vector_subtable = [np.mean(vectors_subtable[i], axis=0)]
+            vector_subtable = np.mean(vectors_subtable[i], axis=0)
         elif n_vectors_subtable == 1:
             vector_subtable = vectors_subtable[i][0]
         else:
@@ -122,7 +122,7 @@ def calculate_similarity(table, random_state):
         n_vectors_table = len(vectors_table[i]) 
 
         if n_vectors_table > 1:
-            vector_table[column] = [np.mean(vectors_table[i], axis=0)]
+            vector_table[column] = np.mean(vectors_table[i], axis=0)
         elif  n_vectors_table == 1:
             vector_table[column] = vectors_table[i][0]
         else:
