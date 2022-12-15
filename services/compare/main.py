@@ -64,35 +64,30 @@ def compare_tables(vector_table, subtable):
 
     list_similarity = []
 
-    # Metemos todas las columnas en un diccionario
-
-    subtable_d = dict()
+    vectors_subtable = []
     for i, column in enumerate(subtable):
-        subtable_d[i] = get_column_text(subtable[column])
+        #print(subtable[column].head())
+        column_text = get_column_text(subtable[column])
 
-
-    #Calculamos los vectores
-
-    data_subtable = sum(subtable_d.values(), []) # flatten data
-    vectors_subtable = getEmbeddings(data_subtable)
-
-    # Se realiza la comparacion
-    id_subtable = 0
+        if column_text:
+            vectors_subtable.append([getEmbeddings(column_text)][0])
+        else:
+            vectors_subtable.append([])
 
     for i, column in enumerate(subtable):
 
-        n_vectors_subtable = len(subtable_d[i]) 
+        n_vectors_subtable = len(vectors_subtable[i]) 
 
         if n_vectors_subtable > 1:
-            vector_subtable = [np.mean(vectors_subtable[id_subtable:id_subtable+n_vectors_subtable], axis=0)]
+            vector_subtable = [np.mean(vectors_subtable[i], axis=0)]
+        elif n_vectors_subtable == 1:
+            vector_subtable = vectors_subtable[i][0]
         else:
-            vector_subtable = vectors_subtable[id_subtable:id_subtable+n_vectors_subtable]
-
-        id_subtable += n_vectors_subtable
+            vector_subtable = []
 
         # Compare each column from the table with the corresponding column in the subtable
         if vector_table and vector_subtable:  # Discard empty lists
-            output = 1 - spatial.distance.cosine(vector_table[0], vector_subtable[0])
+            output = 1 - spatial.distance.cosine(vector_table[column], vector_subtable)
             
             list_similarity.append(output)
 
@@ -109,24 +104,20 @@ def calculate_similarity(table, random_state):
     """
 
     # Calculamos los vectores de la tabla para que no se tenga que repetir en cada iteracion
-    table_d = dict()
+    
+    vectors_table = []
+    vector_table = dict()
     for i, column in enumerate(table):
-        table_d[i] = get_column_text(table[column])
-
-    data_table = sum(table_d.values(), []) # flatten data
-    vectors_table = getEmbeddings(data_table)
-
-    id_table = 0
+        vectors_table.append([getEmbeddings(get_column_text(table[column]))][0])
 
     for i, column in enumerate(table):
-        n_vectors_table = len(table_d[i])
+
+        n_vectors_table = len(vectors_table[i]) 
 
         if n_vectors_table > 1:
-            vector_table = [np.mean(vectors_table[id_table:id_table+n_vectors_table], axis=0)]
+            vector_table[column] = [np.mean(vectors_table[i], axis=0)]
         else:
-            vector_table = vectors_table[id_table:id_table+n_vectors_table]
-        
-        id_table += n_vectors_table
+            vector_table[column] = vectors_table[i][0]
 
     # Comparacion
     list_similarity = [np.NaN] * 11  # Initialize 11 values to NaN: 1%, 5%, 10%, ..., 90%
@@ -195,7 +186,7 @@ def main():
                 tables_discarded += 1
 
             # Save data every 10,000 files or after processing the last file
-            if (i+1) % 10000 == 0 or i == number_files-1:
+            if (i+1) % 10 == 0 or i == number_files-1:
                 end = i+1
                 data_similarity.to_csv(os.path.join(args.result+"_"+args.model, args.model + '_' + str(start) + '-' + str(end) + '.csv'))
                 data_similarity = data_similarity[0:0]  # Erase the rows and keep the same DataFrame structure (columns)
