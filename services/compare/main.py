@@ -122,9 +122,9 @@ def calculate_similarity(table, random_state):
 
         if n_vectors_table > 1:
             vector_table[column] = np.mean(vectors_table[i], axis=0)
-            print(np.mean(vectors_table[i], axis=0))
         elif  n_vectors_table == 1:
             vector_table[column] = vectors_table[i][0]
+            print(vectors_table[i][0])
         else:
             vector_table[column] = []
 
