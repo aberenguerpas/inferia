@@ -68,10 +68,18 @@ def compare_tables(vector_table, subtable):
     for i, column in enumerate(subtable):
 
         column_text = get_column_text(subtable[column])
-        print(len(column_text))
+       
 
         if column_text:
-            vectors_subtable.append(getEmbeddings(column_text))
+            if len(column_text)>50:
+                aux = []
+                for i in range(0, len(column_text), 50):
+                   aux.append(getEmbeddings(column_text[i:50]))
+
+                vectors_subtable.append(aux)
+            else:
+               
+                vectors_subtable.append(getEmbeddings(column_text))
         else:
             vectors_subtable.append([])
 
@@ -113,7 +121,14 @@ def calculate_similarity(table, random_state):
         column_text = get_column_text(table[column])
 
         if column_text:
-            vectors_table.append(getEmbeddings(column_text))
+            if len(column_text)>50:
+                aux = []
+                for i in range(0, len(column_text), 50):
+                   aux.append(getEmbeddings(column_text[i:50]))
+
+                vectors_table.append(aux)
+            else:
+                vectors_table.append(getEmbeddings(column_text))
         else:
             vectors_table.append([])
 
