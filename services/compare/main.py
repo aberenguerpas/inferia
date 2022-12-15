@@ -68,6 +68,7 @@ def compare_tables(vector_table, subtable):
     for i, column in enumerate(subtable):
 
         column_text = get_column_text(subtable[column])
+        print(len(column_text))
 
         if column_text:
             vectors_subtable.append(getEmbeddings(column_text))
