@@ -70,7 +70,7 @@ def compare_tables(vector_table, subtable):
         column_text = get_column_text(subtable[column])
 
         if column_text:
-            vectors_subtable.append([getEmbeddings(column_text)][0])
+            vectors_subtable.append(getEmbeddings(column_text))
         else:
             vectors_subtable.append([])
 
@@ -87,8 +87,7 @@ def compare_tables(vector_table, subtable):
 
         # Compare each column from the table with the corresponding column in the subtable
         if vector_table and vector_subtable:  # Discard empty lists
-            print(len(vector_table[column]))
-            print(len(vector_subtable))
+
             output = 1 - spatial.distance.cosine(vector_table[column], vector_subtable)
             
             list_similarity.append(output)
@@ -112,7 +111,7 @@ def calculate_similarity(table, random_state):
         column_text = get_column_text(table[column])
 
         if column_text:
-            vectors_table.append([getEmbeddings(column_text)][0])
+            vectors_table.append(getEmbeddings(column_text))
         else:
             vectors_table.append([])
 
@@ -123,6 +122,7 @@ def calculate_similarity(table, random_state):
 
         if n_vectors_table > 1:
             vector_table[column] = np.mean(vectors_table[i], axis=0)
+            print(np.mean(vectors_table[i], axis=0))
         elif  n_vectors_table == 1:
             vector_table[column] = vectors_table[i][0]
         else:
