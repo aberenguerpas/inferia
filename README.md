@@ -1,4 +1,4 @@
-# InferIA experiment
+# Model embeddings experiment
 
 Prerequisites, install dependencies
 
