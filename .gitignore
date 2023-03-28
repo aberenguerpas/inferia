@@ -139,3 +139,8 @@ search_result/
 services/indexation/indexData/
 search_result/
 services/embeddings/models/*
+
+.DS_Store
+total_cols.txt
+f_i.pickle
+
