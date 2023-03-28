@@ -1,30 +1,61 @@
 import os
 import torch
-from utils import *
 import numpy as np
-from tqdm import tqdm
 import warnings
 import time
 import argparse
 import pandas as pd
 import traceback
-from faissUtils import *
 import faiss
 import math
 import re
+from collections import Counter
+from faissUtils import *
+from tqdm import tqdm
+from utils import *
+import pickle
+
+with open('./total_cols.txt') as f:
+    n_cols = f.readline()
+N_COLS = int(n_cols)
+
+file = open('./f_i.pickle', 'rb')
+
+F_I = pickle.load(file)
 
 def reduce_col(col, mode):
-   
+
     if mode == 'random':
         per_red = 0.5
         n_rows = math.floor(len(col.index) * per_red)
         new_col = col.sample(n_rows, random_state=1)
+        new_col = new_col.apply(str).to_list()
 
     elif mode == 'duplicates':
         new_col = col.drop_duplicates()
+        new_col = new_col.apply(str).to_list()
+
+    elif mode == 'tfidf':
+        tfidf = dict()
+        freq = Counter(col.values)
+        for val in col.unique():
+            # IDF
+            idf = N_COLS/(int(F_I[str(val).lower()]))
+
+            # TF
+            f_i_j = freq[val]
+            l_j = len(col)
+            tf = math.log(f_i_j/l_j)
+
+            # TF-IDF
+            tfidf[val] = tf*idf
+
+        new_col = sorted(tfidf, reverse=True)[:20]
+
     else:
+        col = col.apply(str).to_list()
         return col
-    
+
     return new_col
 
 def get_column_text(column, reduce):
@@ -41,27 +72,17 @@ def get_column_text(column, reduce):
             column = column.apply(str)  # Convert numbers and booleans to string
         #Reduce column content
         column = reduce_col(column, reduce)
-
-        # Transform to string in case Pandas assigns "object" type to numeric columns and "join" fails (sometimes it happens)
-        try:
-            # Lowercase the text because the sentence model is uncased
-            text = ' '.join(column.to_list()).lower()
-        except TypeError:
-            text = ' '.join(column.apply(str).to_list()).lower()
-
+        text = ' '.join(column)
         # The maximum token length admitted by is 256
         max_sequence_length = 256
         # Larger texts are cut into 256 token length pieces and their vectors are averaged
         # Take into account that a cell could have more than one token
         text = re.sub(r'[^\w\s]', '', text)
         if len(text.split()) > max_sequence_length:
-
             list_tokens = text.split()
-           
             list_texts = []
-            for i in range(0, column.size, max_sequence_length):
+            for i in range(0, len(column), max_sequence_length):
                 list_texts.append(' '.join(list_tokens[i:i+max_sequence_length]))
-            
             return list_texts
         else:
             return [text]
@@ -104,7 +125,6 @@ def index_table(table, key, index_content, invertedIndex, reduce):
                     index_content.add_with_ids(vector, idx)
         
     except Exception as e:
-       print(vector)
        print(e)
        traceback.print_exc()
 
@@ -177,7 +197,7 @@ def main():
     parser.add_argument('-rs', '--rstate', default=None, type=int, help='Seed value for random selection of rows')
     parser.add_argument('-e', '--savemb', default='services/indexation/indexData', help='path to save indexed embeddings')
     parser.add_argument('-t', '--type', default='all', choices=['all', 'split'], help='Experiment type "all" to index full table or "split" to index subtables 1,5,10,20%...90%')
-    parser.add_argument('-re','--reduce', choices=['random','duplicates'], help="Set reduction type of the column")
+    parser.add_argument('-re', '--reduce', choices=['random','duplicates','tfidf'], help="Set reduction type of the column")
     args = parser.parse_args()
 
     # Config
@@ -199,7 +219,7 @@ def main():
         dimensions = 1024
     else:
         dimensions = 768
-    
+
     # Reduce type
     reduce = args.reduce
 
@@ -214,7 +234,7 @@ def main():
         data_similarity.set_index('Name', inplace=True)  # The name of the table is the index of the DataFrame
         #milvus.createCollection(model_name+"_content_1", dim = dimensions)
         #milvus.createCollection(model_name+"_content_5", dim = dimensions)
- 
+
         createIndex(dimensions)
         for i in range(10,110,10):
             #indexs['content_'+str(i)] = createIndex(dimensions)
@@ -251,26 +271,25 @@ def main():
 
             if len(table.index) >= 1:  # Discard tables with less than 10 rows after dropping NaN
                 if args.type == 'all':
-                    # index table head embedding 
+                    # index table head embedding
                     headers = table.columns.values
                     headers = filter(lambda col: 'Unnamed' not in col, headers) # Skip unnamed column
                     headers_text = ' '.join(map(str, headers))
 
                     embeddings = np.array([getEmbeddings([headers_text])], dtype="float32")
-       
+
                     while len(embeddings) == 1:
                         embeddings = embeddings[0]
-                    
+
                     embeddings = np.array([embeddings]).astype(np.float32)
                     faiss.normalize_L2(embeddings)
                     id = np.random.randint(0, 99999999999999, size=1)
                     invertedIndex[id[0]] = key
 
-                    #if model_name != 'stb':
+                    # if model_name != 'stb':
                     #    embeddings =  np.array([item for sublist in embeddings for item in sublist], dtype="float32") # flat lists
-          
+
                     if embeddings.size>0:
-                        
                         index_headers.add_with_ids(embeddings, id)
                         index_table(table, key, index_content, invertedIndex, reduce)
                 else:
@@ -287,8 +306,7 @@ def main():
                     data_similarity = data_similarity[0:0]  # Erase the rows and keep the same DataFrame structure (columns)
                 start = end+1
 
-                # create folder 
-
+                # create folder
                 if not os.path.exists(args.savemb):
                     os.makedirs(args.savemb)
 
@@ -305,14 +323,10 @@ def main():
                     saveIndex(index_content, os.path.join(args.savemb, reduce+"_"+model_name+'_content.faiss'))
                     saveInvertedIndex(invertedIndex, os.path.join(args.savemb, reduce+"_"+model_name+'_invertedIndex'))
 
-        except Exception as e:
-   
-            print(e)
-            print(path)
+        except Exception:
             traceback.print_exc()
 
     print('Total tables discarded: ' + str(tables_discarded))
-
     end_time = time.time()
     print('Processing time: ' + str(end_time - start_time) + ' seconds')
 
