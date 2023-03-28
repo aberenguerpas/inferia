@@ -151,7 +151,7 @@ def main():
     parser.add_argument('-m', '--model', default='brt', choices=['stb', 'rbt','brt','fst','w2v'],
                         help='"stb" (Sentence-BERT), "rbt" (Roberta),"fst" (FastText),"w2v" (Word2Vec) or "brt" (BERT)')
     parser.add_argument('-r', '--result', default='search_result/results', help='Name of the output folder that stores the search results')
-    parser.add_argument('-re','--reduce', choices=['random','duplicates'], help="Set reduction type of the column")
+    parser.add_argument('-re','--reduce', choices=['random','duplicates', 'tfidf'], help="Set reduction type of the column")
 
     args = parser.parse_args()
 
