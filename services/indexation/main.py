@@ -50,7 +50,8 @@ def reduce_col(col, mode):
             # TF-IDF
             tfidf[val] = tf*idf
 
-        new_col = sorted(tfidf, reverse=True)[:20]
+        new_col = sorted(tfidf, reverse=True)
+        new_col = new_col[:math.ceil(len(new_col)/2)]  # Nos quedamos con la mitad más importante
 
     else:
         col = col.apply(str).to_list()

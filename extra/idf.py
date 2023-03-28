@@ -11,7 +11,7 @@ def add_dic(t):
         f_i[t] = 1
 
 
-PATH_DATA = '/home/wake/inferia/experiments/data/dublin_clean'
+PATH_DATA = './experiments/data/wikitables_clean'
 total_columns = 0
 
 
